@@ -58,6 +58,14 @@ class FitterTest(test_util.PWLFitTest):
     self.assert_allclose(y, pwl_predict(x, y, w, 1))
     self.assert_allclose(y, pwl_predict(x, y, w, 2))
 
+  def test_mono_decreasing_log1p_line(self):
+    x = np.arange(51, dtype=float)
+    log1p_x = np.log1p(x)
+    y = utils.eval_pwl_curve(log1p_x, [(log1p_x[0], 75), (log1p_x[-1], -1)])
+    w = np.ones_like(x)
+    self.assert_allclose(y, pwl_predict(x, y, w, 1))
+    self.assert_allclose(y, pwl_predict(x, y, w, 2))
+
   def test_simple_slope_restrictions(self):
     x = np.arange(51, dtype=float)
     y = utils.eval_pwl_curve(x, [(0, 0), (50, 75)])
@@ -111,6 +119,24 @@ class FitterTest(test_util.PWLFitTest):
     # Monotone curves can't fit this data closely.
     self.assert_notallclose(
         y, pwl_predict(x, y, w, 2, mono=True, x_transform=transform.identity))
+
+  def test_non_mono_two_segment_log(self):
+    exp_x = 1 + np.arange(51, dtype=float)
+    x = np.log(exp_x)
+    y = utils.eval_pwl_curve(x, [(x[0], 0), (x[25], 25), (x[50], 0)])
+    w = np.ones_like(x)
+
+    # Piecewise-linear in log space.
+    self.assert_allclose(
+        y, pwl_predict(exp_x, y, w, 2, mono=False, x_transform=np.log))
+    self.assert_allclose(
+        y, pwl_predict(exp_x, y, w, 3, mono=False, x_transform=np.log))
+    self.assert_allclose(
+        y, pwl_predict(exp_x, y, w, 4, mono=False, x_transform=np.log))
+
+    # Monotone curves can't fit this data closely.
+    self.assert_notallclose(
+        y, pwl_predict(exp_x, y, w, 2, mono=True, x_transform=np.log))
 
   def test_mono_increasing_two_segment_pwl_with_flat_ends(self):
     x = np.arange(51, dtype=float)
@@ -204,6 +230,12 @@ class FitterTest(test_util.PWLFitTest):
     # With segments=2, weights have no effect since we can fit perfectly.
     self.assert_allclose(y, pwl_predict(x, y, np.ones_like(x), 2))
     self.assert_allclose(y, pwl_predict(x, y, w, 2))
+
+  def test_fit_pwl_with_one_unique_x(self):
+    x = np.ones(10, dtype=float)
+    y = x * 5
+    w = np.ones_like(x)
+    self.assert_allclose(y, pwl_predict(x, y, w, 1))
 
 
 class FitPWLPointsTest(test_util.PWLFitTest):

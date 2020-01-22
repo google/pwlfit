@@ -56,9 +56,12 @@ def fit_pwl(x,
     x: (numpy array) independent variable.
     y: (numpy array) dependent variable.
     w: (numpy array) the weights on data points.
-    num_segments: (positive int) Number of linear segments.
+    num_segments: (positive int) Number of linear segments. More segments
+      increases quality at the cost of complexity.
     num_samples: (positive int) Number of potential knot locations to try for
-      the PWL curve.
+      the PWL curve. More samples improves fit quality, but slows fitting. At
+      100 samples, fit_pwl runs in 1-2 seconds. At 1000 samples, it runs in
+      under a minute. At 10,000 samples, expect an hour.
     mono: (boolean) Whether to require a monotone solution. fit_pwl will
       determine whether to prefer a mono-up solution or a mono-down solution,
       unless min_slope or max_slope force a direction.
@@ -68,7 +71,7 @@ def fit_pwl(x,
       knots. Set to 0 for a monotone decreasing solution.
     x_transform: (None or a strictly increasing 1D function): User-specified
       transform on x, to apply before piecewise-linear curve fitting. If None,
-      pwl_fit chooses a transform using a heuristic. To specify fitting with no
+      fit_pwl chooses a transform using a heuristic. To specify fitting with no
       transform, pass in transform.identity.
 
   Returns:
@@ -79,7 +82,7 @@ def fit_pwl(x,
   assert num_samples > num_segments, (
       'num_samples must be at least num_segments + 1')
 
-  x, y, w = _sort_and_sample(x, y, w)
+  x, y, w = sort_and_sample(x, y, w)
   if x_transform is None:
     x_transform = transform.find_best_transform(x, y, w)
 
@@ -101,12 +104,14 @@ def fit_pwl(x,
 
   # Recover the control point xs in the pre-transform space.
   x_pnts = original_x[trans_x.searchsorted(x_pnts)]
-
-  curve_points = list(zip(x_pnts, y_pnts))
+  if np.all(y_pnts == y_pnts[0]):  # The curve is constant.
+    curve_points = [(x_pnts[0] - 1, y_pnts[0]), (x_pnts[0], y_pnts[0])]
+  else:
+    curve_points = list(zip(x_pnts, y_pnts))
   return curve_points, x_transform
 
 
-def _sort_and_sample(x, y, w, downsample_to=1e6):
+def sort_and_sample(x, y, w, downsample_to=1e6):
   """Samples and sorts the data to fit a PWLCurve on.
 
   Samples each point with equal likelihood, once or zero times per point. Weight
@@ -117,7 +122,7 @@ def _sort_and_sample(x, y, w, downsample_to=1e6):
     x: (numerical numpy array) The independent variable.
     y: (numerical numpy array) The dependent variable.
     w: (None or numerical numpy array) The weights of data points. Weights are
-      NOT used in downsampling;
+      NOT used in downsampling.
     downsample_to: (int or float) The approximate number of samples to take.
 
   Raises:
@@ -128,15 +133,18 @@ def _sort_and_sample(x, y, w, downsample_to=1e6):
     variable in sorted order, the independent variable, and the weights
     respectively.
   """
+  x = np.array(x, copy=False)
+  y = np.array(y, copy=False)
   if w is None:
     w = np.ones_like(x)
   else:
+    w = np.array(w, copy=False)
     assert (w > 0).all(), 'Weights must be positive.'
 
   assert len(x) == len(y) == len(w) >= 1
-  assert np.isfinite(x).all()
-  assert np.isfinite(y).all()
-  assert np.isfinite(w).all()
+  assert np.isfinite(x).all(), 'x-values must all be finite.'
+  assert np.isfinite(y).all(), 'y-values must all be finite.'
+  assert np.isfinite(w).all(), 'w-values must all be finite.'
 
   # Downsample to a manageable number of points to limit runtime.
   if len(x) > downsample_to * 1.01:
@@ -249,12 +257,9 @@ def fit_pwl_points(x_knots,
   assert num_segments >= 1
   assert min_slope is None or max_slope is None or min_slope <= max_slope
 
-  if len(x_knots) == 1:  # One knot --> constant function.
+  if len(x_knots) == 1 or np.all(y == y[0]):  # Constant function.
     y_mean = np.average(y, weights=w)
     return [x[0] - 1, x[0]], [y_mean, y_mean]
-
-  if np.all(y == y[0]):
-    return [x[0] - 1, x[0]], [y[0], y[0]]
 
   solver = _WeightedLeastSquaresPWLSolver(x, y, w, min_slope, max_slope)
   return _fit_pwl_approx(x_knots, solver.solve, num_segments)
