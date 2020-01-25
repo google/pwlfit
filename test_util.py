@@ -36,3 +36,13 @@ class PWLFitTest(unittest.TestCase):
     np.testing.assert_raises(
         AssertionError, np.testing.assert_allclose, first, second, atol=1e-10)
 
+  def assert_increasing(self, seq):
+    for a, b in zip(seq[:-1], seq[1:]):
+      self.assertLessEqual(a, b)
+
+  def assert_decreasing(self, seq):
+    for a, b in zip(seq[:-1], seq[1:]):
+      self.assertGreaterEqual(a, b)
+
+
+

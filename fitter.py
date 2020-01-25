@@ -21,6 +21,7 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
+import isotonic
 import linear_condense
 import transform
 import utils
@@ -28,7 +29,6 @@ import scipy.optimize
 from six.moves import map
 from six.moves import range
 from six.moves import zip
-from sklearn import isotonic
 
 
 def fit_pwl(x,
@@ -215,11 +215,8 @@ def _is_increasing(y, w):
     True if a monotonically increasing sequence is an equal or better fit to the
     data than a monotonically decreasing sequence. False otherwise.
   """
-  x = np.arange(len(y))
-  increasing = isotonic.IsotonicRegression(increasing=True).fit(x, y,
-                                                                w).predict(x)
-  decreasing = isotonic.IsotonicRegression(increasing=False).fit(x, y,
-                                                                 w).predict(x)
+  increasing = isotonic.isotonic_regression(y, w, increasing=True)
+  decreasing = isotonic.isotonic_regression(y, w, increasing=False)
 
   increasing_norm = np.average((increasing - y)**2, weights=w)
   decreasing_norm = np.average((decreasing - y)**2, weights=w)

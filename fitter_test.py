@@ -240,14 +240,6 @@ class FitterTest(test_util.PWLFitTest):
 
 class FitPWLPointsTest(test_util.PWLFitTest):
 
-  def assert_increasing(self, seq):
-    for a, b in zip(seq[:-1], seq[1:]):
-      self.assertLessEqual(a, b)
-
-  def assert_decreasing(self, seq):
-    for a, b in zip(seq[:-1], seq[1:]):
-      self.assertGreaterEqual(a, b)
-
   def test_fit_pwl_points_ignores_extra_segments(self):
     # A curve can optimally fit the sample with one knot per sample point. Any
     # additional knots would be wasted, so fit_pwl_points shouldn't generate
