@@ -19,6 +19,7 @@ import unittest
 import numpy as np
 import test_util
 import utils
+import six
 
 
 def _best_fit_line(x, y, w):
@@ -118,6 +119,22 @@ class EvalPWLCurveTest(test_util.PWLFitTest):
     expected_y = [5, 5, 7, 13, 14, 15, 15]
     predicted_y = utils.eval_pwl_curve(exp_x, exp_curve, np.log)
     self.assert_allclose(expected_y, predicted_y)
+
+
+class ExpectTest(test_util.PWLFitTest):
+
+  def test_expect_does_nothing_when_true(self):
+    utils.expect(True)
+    utils.expect(True, 'True should be True.')
+    utils.expect(5 == 5)
+
+  def test_expect_raises_when_false(self):
+    with self.assertRaises(ValueError):
+      utils.expect(False)
+
+    with six.assertRaisesRegex(self, ValueError, 'Value is False'):
+      utils.expect(False, 'Value is False.')
+
 
 if __name__ == '__main__':
   unittest.main()

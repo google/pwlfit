@@ -74,7 +74,7 @@ def linear_condense(x, y, w):
     is on x, y, w.
 
   """
-  assert len(x) == len(y) == len(w)
+  utils.expect(len(x) == len(y) == len(w))
   x = np.array(x, dtype=float, copy=False)
   y = np.array(y, dtype=float, copy=False)
   w = np.array(w, dtype=float, copy=False)
@@ -217,8 +217,8 @@ def sample_condense_points(sorted_x, y, w, num_knots):
   Returns:
     A tuple of 4 lists: x_knots, condensed_x, condensed_y, condensed_w.
   """
-  assert num_knots >= 2, 'num_knots must be at least 2.'
-  assert len(sorted_x) == len(y) == len(w)
+  utils.expect(num_knots >= 2, 'num_knots must be at least 2.')
+  utils.expect(len(sorted_x) == len(y) == len(w))
 
   sorted_x, y, w = utils.fuse_sorted_points(sorted_x, y, w)
   if len(sorted_x) <= num_knots:

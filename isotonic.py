@@ -21,7 +21,7 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-
+import utils
 from six.moves import range
 
 
@@ -47,9 +47,9 @@ def isotonic_regression(sequence, weights=None, increasing=True):
     weights = np.ones_like(sequence)
   else:
     weights = np.array(weights, copy=False, dtype=float)
-    assert len(weights) == len(sequence), (
-        'Weights must be same size as sequence.')
-    assert (weights > 0).all(), 'Weights must be positive.'
+    utils.expect(
+        len(weights) == len(sequence), 'Weights must be same size as sequence.')
+    utils.expect((weights > 0).all(), 'Weights must be positive.')
 
   return _pool_adjacent_violators(sequence, weights)
 

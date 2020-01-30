@@ -21,6 +21,7 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
+import utils
 
 
 def weighted_pearson_correlation(x, y, w):
@@ -67,7 +68,7 @@ def identity(x):
 
 def _clip_weight_extremes(ws, pct_to_clip):
   """Clips the pct_to_clip first and last values by weight."""
-  assert 0 <= pct_to_clip < .5
+  utils.expect(0 <= pct_to_clip < .5)
   if pct_to_clip == 0:
     return ws
 

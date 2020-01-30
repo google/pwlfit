@@ -39,7 +39,7 @@ def fuse_sorted_points(sorted_xs, ys, ws):
     in sorted order, Y is the weighted average of the ys corresponding to each x
     in X, and W is the sum of the ws corresponding to each x in X.
   """
-  assert len(sorted_xs) == len(ys) == len(ws)
+  expect(len(sorted_xs) == len(ys) == len(ws))
   is_unique = np.ones(len(sorted_xs), dtype=bool)
   np.not_equal(sorted_xs[1:], sorted_xs[:-1], out=is_unique[1:])
   if is_unique.all():  # All unique --> nothing to fuse.
@@ -98,11 +98,12 @@ def eval_pwl_curve(xs, curve_points, transform_fn=None):
   Returns:
     A numpy array of the PWLCurve's value at each x in xs.
   """
-  assert len(curve_points) >= 2, 'A PWLCurve must have at least two knots.'
+  expect(len(curve_points) >= 2, 'A PWLCurve must have at least two knots.')
   curve_xs, curve_ys = zip(*curve_points)
   curve_xs, curve_ys = np.asarray(curve_xs), np.asarray(curve_ys)
-  assert len(set(curve_xs)) == len(curve_xs), 'Curve knot xs must be unique.'
-  assert (np.sort(curve_xs) == curve_xs).all(), 'Curve knot xs must be ordered.'
+  expect(len(set(curve_xs)) == len(curve_xs), 'Curve knot xs must be unique.')
+  expect((np.sort(curve_xs) == curve_xs).all(),
+         'Curve knot xs must be ordered.')
 
   # Clamp the inputs to the range of the control points.
   xs = np.clip(xs, curve_xs[0], curve_xs[-1])
@@ -121,3 +122,17 @@ def eval_pwl_curve(xs, curve_points, transform_fn=None):
   gap = next_x - prev_x
 
   return next_y * ((xs - prev_x) / gap) + prev_y * ((next_x - xs) / gap)
+
+
+def expect(condition, message=''):
+  """Raises a ValueError if condition isn't truthy.
+
+  Args:
+    condition: (boolean) Whether or not to raise a ValueError.
+    message: (optional float) The message raised with the error.
+
+  Raises:
+    ValueError: [message]
+  """
+  if not condition:
+    raise ValueError(message)

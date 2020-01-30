@@ -78,9 +78,9 @@ def fit_pwl(x,
     Tuple consisting of ([(x,y) knots], transform_fn). The curve performs linear
     interpolation in the transform_fn(x) space.
   """
-  assert num_segments > 0, 'Cannot fit %d segment PWL' % num_segments
-  assert num_samples > num_segments, (
-      'num_samples must be at least num_segments + 1')
+  utils.expect(num_segments > 0, 'Cannot fit %d segment PWL' % num_segments)
+  utils.expect(num_samples > num_segments,
+               'num_samples must be at least num_segments + 1')
 
   x, y, w = sort_and_sample(x, y, w)
   if x_transform is None:
@@ -88,7 +88,8 @@ def fit_pwl(x,
 
   original_x = x
   trans_x = x_transform(x)
-  assert np.isfinite(trans_x[[0, -1]]).all(), 'Transform must be defined on x.'
+  utils.expect(np.isfinite(trans_x[[0, -1]]).all(),
+               'Transform must be defined on x.')
 
   # Pick a subset of x to use as candidate knots, and compress x, y, w around
   # those candidate knots.
@@ -139,12 +140,12 @@ def sort_and_sample(x, y, w, downsample_to=1e6):
     w = np.ones_like(x)
   else:
     w = np.array(w, copy=False)
-    assert (w > 0).all(), 'Weights must be positive.'
+    utils.expect((w > 0).all(), 'Weights must be positive.')
 
-  assert len(x) == len(y) == len(w) >= 1
-  assert np.isfinite(x).all(), 'x-values must all be finite.'
-  assert np.isfinite(y).all(), 'y-values must all be finite.'
-  assert np.isfinite(w).all(), 'w-values must all be finite.'
+  utils.expect(len(x) == len(y) == len(w) >= 1)
+  utils.expect(np.isfinite(x).all(), 'x-values must all be finite.')
+  utils.expect(np.isfinite(y).all(), 'y-values must all be finite.')
+  utils.expect(np.isfinite(w).all(), 'w-values must all be finite.')
 
   # Downsample to a manageable number of points to limit runtime.
   if len(x) > downsample_to * 1.01:
@@ -250,9 +251,9 @@ def fit_pwl_points(x_knots,
     Returns two tuple (x_points, y_points) where x_points (y_points) is the list
     of x-axis (y-axis) knot points of the fit PWL curve.
   """
-  assert len(x) == len(y) == len(w) >= 1
-  assert num_segments >= 1
-  assert min_slope is None or max_slope is None or min_slope <= max_slope
+  utils.expect(len(x) == len(y) == len(w) >= 1)
+  utils.expect(num_segments >= 1)
+  utils.expect(min_slope is None or max_slope is None or min_slope <= max_slope)
 
   if len(x_knots) == 1 or np.all(y == y[0]):  # Constant function.
     y_mean = np.average(y, weights=w)
@@ -395,9 +396,10 @@ class _WeightedLeastSquaresPWLSolver(object):
       max_slope: float indicating the maximum slope between each adjacent pair
         of knots. Set to 0 to impose a monotone decreasing solution.
     """
-    assert len(x) == len(y) == len(w) >= 1
-    assert (w >= 0).all(), 'weights cannot be negative.'
-    assert min_slope is None or max_slope is None or min_slope <= max_slope
+    utils.expect(len(x) == len(y) == len(w) >= 1)
+    utils.expect((w >= 0).all(), 'weights cannot be negative.')
+    utils.expect(min_slope is None or max_slope is None or
+                 min_slope <= max_slope)
 
     sqrt_w = np.sqrt(w, dtype=float)
     self._sqrt_w = sqrt_w.reshape(len(w), 1)
@@ -426,8 +428,8 @@ class _WeightedLeastSquaresPWLSolver(object):
     # continuous blocks in the matrix's memory.
     width = len(self._x)
     height = len(knot_xs)
-    assert height <= width, (
-        'Solve() is underdetermined with more knots than points.')
+    utils.expect(height <= width,
+                 'Solve() is underdetermined with more knots than points.')
     matrix = np.zeros(width * height, dtype=float)
     knot_indices_in_xs = np.searchsorted(self._x, knot_xs)
 

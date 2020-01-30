@@ -282,7 +282,7 @@ class FitPWLPointsTest(test_util.PWLFitTest):
     x = np.sort(np.random.uniform(size=3))
     y = -np.sort(np.random.normal(size=3))
     w = np.random.uniform(size=3)
-    with self.assertRaises(AssertionError):
+    with self.assertRaises(ValueError):
       fitter.fit_pwl_points(x, x, y, w, 3, min_slope=1, max_slope=-1)
 
   def test_fit_pwl_points_non_mono_two_segment(self):
