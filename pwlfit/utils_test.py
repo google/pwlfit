@@ -17,8 +17,8 @@
 import unittest
 
 import numpy as np
-import test_util
-import utils
+from pwlfit import test_util
+from pwlfit import utils
 import six
 
 

@@ -21,10 +21,10 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-import isotonic
-import linear_condense
-import transform
-import utils
+from pwlfit import isotonic
+from pwlfit import linear_condense
+from pwlfit import transform
+from pwlfit import utils
 import scipy.optimize
 from six.moves import map
 from six.moves import range

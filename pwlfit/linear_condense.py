@@ -33,7 +33,7 @@ from __future__ import print_function
 import math
 import numpy as np
 
-import utils
+from pwlfit import utils
 
 
 def _recenter_at_zero(x, y, w):

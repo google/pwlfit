@@ -23,10 +23,10 @@ from __future__ import print_function
 import unittest
 
 import numpy as np
-import fitter
-import test_util
-import transform
-import utils
+from pwlfit import fitter
+from pwlfit import test_util
+from pwlfit import transform
+from pwlfit import utils
 from six.moves import zip
 
 

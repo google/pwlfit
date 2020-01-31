@@ -23,8 +23,8 @@ import unittest
 
 
 import numpy as np
-import test_util
-import transform
+from pwlfit import test_util
+from pwlfit import transform
 import scipy.stats
 
 

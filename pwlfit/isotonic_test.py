@@ -7,8 +7,8 @@ from __future__ import print_function
 import unittest
 
 import numpy as np
-import isotonic
-import test_util
+from pwlfit import isotonic
+from pwlfit import test_util
 from six.moves import range
 
 

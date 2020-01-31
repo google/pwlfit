@@ -18,9 +18,9 @@
 import unittest
 
 import numpy as np
-import linear_condense
-import test_util
-import utils
+from pwlfit import linear_condense
+from pwlfit import test_util
+from pwlfit import utils
 
 
 def _line_mse_on_data(slope, intercept, x, y, w):
