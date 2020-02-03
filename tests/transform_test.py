@@ -70,6 +70,54 @@ class FindBestTransformTest(test_util.PWLFitTest):
     weighted_corr = transform.weighted_pearson_correlation(x, y, w)
     self.assertAlmostEqual(weightless_corr, weighted_corr)
 
+  def test_weighted_pearson_correlation_nan_when_x_is_constant(self):
+    np.random.seed(6)
+    x = np.repeat(np.random.normal(), 10)
+    y = np.random.normal(size=10)
+    w = np.random.uniform(size=10)
+
+    # The calculation shouldn't raise a numpy RuntimeWarning.
+    with np.errstate(all='raise'):
+      correlation = transform.weighted_pearson_correlation(x, y, w)
+
+    self.assertTrue(np.isnan(correlation))
+
+  def test_weighted_pearson_correlation_nan_when_y_is_constant(self):
+    np.random.seed(7)
+    x = np.random.normal(size=10)
+    y = np.repeat(np.random.normal(), 10)
+    w = np.random.uniform(size=10)
+
+    # The calculation shouldn't raise a numpy RuntimeWarning.
+    with np.errstate(all='raise'):
+      correlation = transform.weighted_pearson_correlation(x, y, w)
+
+    self.assertTrue(np.isnan(correlation))
+
+  def test_weighted_pearson_correlation_raises_on_bad_input(self):
+    no_pts = np.array([], dtype=float)
+    two_pts = np.array([1., 2.])
+    three_pts = np.array([1., 2., 3.])
+
+    with self.assertRaises(ValueError):
+      transform.weighted_pearson_correlation(no_pts, no_pts, no_pts)
+
+    with self.assertRaises(ValueError):
+      transform.weighted_pearson_correlation(three_pts, two_pts, two_pts)
+
+    with self.assertRaises(ValueError):
+      transform.weighted_pearson_correlation(three_pts, two_pts, three_pts)
+
+    with self.assertRaises(ValueError):
+      transform.weighted_pearson_correlation(three_pts, three_pts, two_pts)
+
+    with self.assertRaises(ValueError):
+      transform.weighted_pearson_correlation(no_pts, two_pts, three_pts)
+
+    # Doesn't raise.
+    transform.weighted_pearson_correlation(two_pts, two_pts, two_pts)
+    transform.weighted_pearson_correlation(three_pts, three_pts, three_pts)
+
   def test_identity_function(self):
     np.random.seed(4)
     xs = np.random.normal(size=100)
@@ -85,6 +133,14 @@ class FindBestTransformTest(test_util.PWLFitTest):
     np.random.seed(5)
     x = np.ones(10)
     y = np.arange(10)
+    w = np.random.uniform(size=len(x))
+    found_transform = transform.find_best_transform(x, y, w)
+    self.assertEqual(identity_transform, found_transform)
+
+  def test_find_best_transform_is_identity_for_constant_ys(self):
+    np.random.seed(5)
+    x = np.arange(10)
+    y = np.ones(10)
     w = np.random.uniform(size=len(x))
     found_transform = transform.find_best_transform(x, y, w)
     self.assertEqual(identity_transform, found_transform)

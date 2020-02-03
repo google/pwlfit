@@ -32,17 +32,23 @@ def weighted_pearson_correlation(x, y, w):
     y: (numerical numpy array) Second feature for the correlation.
     w: (numerical numpy array) Weights of the points.
 
+  Raises:
+    ValueError: if x, y, w have different lengths or are empty.
+
   Returns:
     The weighted correlation between x and y, from -1 (perfect inverse
     correlation) to 1 (perfect correlation). 0 indicates no correlation.
+    NaN if all x-values or all y-values are the same.
     https://en.wikipedia.org/wiki/Pearson_correlation_coefficient
   """
+  utils.expect(len(x) == len(y) == len(w) >= 1,
+               'x, y, and w must be nonempty and equal in length.')
   x, y, w = np.asarray(x), np.asarray(y), np.asarray(w)
-  if x.min() == x.max():
-    return 0.0
-
   xm = x - np.average(x, weights=w)
   ym = y - np.average(y, weights=w)
+  if (xm == xm[0]).all() or (ym == ym[0]).all():
+    # Correlation isn't defined when one variable is constant.
+    return float('nan')
 
   covxy = np.average(xm * ym, weights=w)
   covxx = np.average(xm ** 2, weights=w)
