@@ -75,11 +75,7 @@ class FindBestTransformTest(test_util.PWLFitTest):
     x = np.repeat(np.random.normal(), 10)
     y = np.random.normal(size=10)
     w = np.random.uniform(size=10)
-
-    # The calculation shouldn't raise a numpy RuntimeWarning.
-    with np.errstate(all='raise'):
-      correlation = transform.weighted_pearson_correlation(x, y, w)
-
+    correlation = transform.weighted_pearson_correlation(x, y, w)
     self.assertTrue(np.isnan(correlation))
 
   def test_weighted_pearson_correlation_nan_when_y_is_constant(self):
@@ -87,11 +83,7 @@ class FindBestTransformTest(test_util.PWLFitTest):
     x = np.random.normal(size=10)
     y = np.repeat(np.random.normal(), 10)
     w = np.random.uniform(size=10)
-
-    # The calculation shouldn't raise a numpy RuntimeWarning.
-    with np.errstate(all='raise'):
-      correlation = transform.weighted_pearson_correlation(x, y, w)
-
+    correlation = transform.weighted_pearson_correlation(x, y, w)
     self.assertTrue(np.isnan(correlation))
 
   def test_weighted_pearson_correlation_raises_on_bad_input(self):
@@ -152,6 +144,26 @@ class FindBestTransformTest(test_util.PWLFitTest):
     w = np.ones_like(x)
     found_transform = transform.find_best_transform(x, y, w, pct_to_clip=.01)
     self.assertEqual(identity_transform, found_transform)
+
+  def test_find_best_transform_is_identity_for_ys_constant_after_clipping(self):
+    np.random.seed(5)
+    y = np.array([1.] + [2] * 100 + [3])
+    x = np.arange(len(y))
+    w = np.ones_like(x)
+    found_transform = transform.find_best_transform(x, y, w, pct_to_clip=.01)
+    self.assertEqual(identity_transform, found_transform)
+
+  def test_find_best_transform_does_not_mutate_inputs(self):
+    np.random.seed(5)
+    x = np.sort(np.random.normal(size=123))
+    y = np.random.normal(size=123)
+    w = np.random.uniform(size=123)
+    x_copy, y_copy, w_copy = x.copy(), y.copy(), w.copy()
+
+    transform.find_best_transform(x, y, w)
+    np.testing.assert_array_equal(x, x_copy)
+    np.testing.assert_array_equal(y, y_copy)
+    np.testing.assert_array_equal(w, w_copy)
 
   def test_find_best_transform_identity(self):
     np.random.seed(5)

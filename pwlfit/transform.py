@@ -43,7 +43,6 @@ def weighted_pearson_correlation(x, y, w):
   """
   utils.expect(len(x) == len(y) == len(w) >= 1,
                'x, y, and w must be nonempty and equal in length.')
-  x, y, w = np.asarray(x), np.asarray(y), np.asarray(w)
   xm = x - np.average(x, weights=w)
   ym = y - np.average(y, weights=w)
   if (xm == xm[0]).all() or (ym == ym[0]).all():
@@ -72,26 +71,27 @@ def identity(x):
   return x
 
 
-def _clip_weight_extremes(ws, pct_to_clip):
+def _clip_extremes(x, y, w, pct_to_clip):
   """Clips the pct_to_clip first and last values by weight."""
   utils.expect(0 <= pct_to_clip < .5)
   if pct_to_clip == 0:
-    return ws
+    return w
 
-  ws = np.array(ws, copy=True, dtype=float)
-  ws_cumsum = ws.cumsum()
-  w_sum = ws_cumsum[-1]
+  w_cumsum = w.cumsum()
+  w_sum = w_cumsum[-1]
   cut_weight = w_sum * pct_to_clip
 
   # The indices of the first and last nonzero entries after clipping.
-  first_nonzero = ws_cumsum.searchsorted(cut_weight, side='right')
-  last_nonzero = ws_cumsum.searchsorted(w_sum - cut_weight, side='left')
-  ws[:first_nonzero], ws[last_nonzero + 1:] = 0, 0
+  first_nonzero = w_cumsum.searchsorted(cut_weight, side='right')
+  last_nonzero = w_cumsum.searchsorted(w_sum - cut_weight, side='left')
+  x = x[first_nonzero: last_nonzero + 1]
+  y = y[first_nonzero: last_nonzero + 1]
+  w = w[first_nonzero: last_nonzero + 1].copy()  # Don't modify the original.
 
-  # Use any leftover cut_weight to reduce the weights at first and last nonzero.
-  ws[first_nonzero] = ws_cumsum[first_nonzero] - cut_weight
-  ws[last_nonzero] = w_sum - ws_cumsum[last_nonzero - 1] - cut_weight
-  return ws, first_nonzero, last_nonzero
+  # Use any leftover cut_weight to reduce the first and last weights.
+  w[0] = w_cumsum[first_nonzero] - cut_weight
+  w[-1] = w_sum - w_cumsum[last_nonzero - 1] - cut_weight
+  return x, y, w
 
 
 def find_best_transform(sorted_x, y, w, pct_to_clip=0.005, identity_bias=1e-6):
@@ -113,9 +113,8 @@ def find_best_transform(sorted_x, y, w, pct_to_clip=0.005, identity_bias=1e-6):
   """
   if len(sorted_x) <= 1:
     return identity
-
-  clipped_w, first_nonzero, last_nonzero = _clip_weight_extremes(w, pct_to_clip)
-  if sorted_x[first_nonzero] == sorted_x[last_nonzero]:
+  x, y, w = _clip_extremes(sorted_x, y, w, pct_to_clip)
+  if x[0] == x[-1]:
     # No reason to transform if there's only one unique x after clipping.
     return identity
 
@@ -130,8 +129,8 @@ def find_best_transform(sorted_x, y, w, pct_to_clip=0.005, identity_bias=1e-6):
   # Use the Pearson correlation to find the transformation on which the data
   # looks the most linear.
   # https://en.wikipedia.org/wiki/Pearson_correlation_coefficient
-  identity_pearson = weighted_pearson_correlation(sorted_x, y, clipped_w)
-  log_pearson = weighted_pearson_correlation(transform(sorted_x), y, clipped_w)
+  identity_pearson = weighted_pearson_correlation(x, y, w)
+  log_pearson = weighted_pearson_correlation(transform(x), y, w)
   if abs(log_pearson) > abs(identity_pearson) + identity_bias:
     return transform
 

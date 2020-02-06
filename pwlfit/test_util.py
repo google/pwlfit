@@ -27,6 +27,11 @@ import numpy as np
 
 class PWLFitTest(unittest.TestCase):
 
+  @classmethod
+  def setUpClass(cls):
+    super(PWLFitTest, cls).setUpClass()
+    np.seterr('raise')  # Strict -- fail if numpy produces a RuntimeWarning.
+
   def assert_allclose(self, first, second):
     # np.testing.assert_allclose has no absolute tolerance by default.
     # Consequently, it returns false negatives when the correct value is 0.
@@ -43,6 +48,3 @@ class PWLFitTest(unittest.TestCase):
   def assert_decreasing(self, seq):
     for a, b in zip(seq[:-1], seq[1:]):
       self.assertGreaterEqual(a, b)
-
-
-
