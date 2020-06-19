@@ -136,3 +136,42 @@ def expect(condition, message=''):
   """
   if not condition:
     raise ValueError(message)
+
+
+def _tosigfigs(x, num_figs):
+  num_figs_str = '%d' % num_figs
+  return float(('%.' + num_figs_str + 'g') % x)
+
+
+def _xsunique(pts):
+  xs = [x for x, _ in pts]
+  return len(xs) == len(set(xs))
+
+
+def round_to_sig_figs(curve_points, xfigures, yfigures=None):
+  """Rounds coordinates to specified number of significant figures.
+
+  A valid curve can't have duplicate control point xs. If the rounded curve has
+  duplicate xs, we increment xfigures until the xs are no longer duplicates.
+
+  Args:
+    curve_points: (list of pairs) The (x,y) control points of the PWLCurve. The
+        xs must be unique and in ascending order.
+    xfigures: (int) Minimum number of decimal digits to keep. For example,
+        ndigits=2 rounds to 2 decimal digits (1.234 --> 1.2).
+    yfigures: (int): How many decimal digits to keep for y coordinates of points
+        If not set, will use xfigures.
+
+  Returns:
+    curve_points rounded to the specified number of digits.
+  """
+  expect(_xsunique(curve_points), 'Each control point must have a unique x.')
+  if yfigures is None:
+    yfigures = xfigures
+
+  rounded_pts = [(_tosigfigs(x, xfigures), _tosigfigs(y, yfigures))
+                 for x, y in curve_points]
+  if not _xsunique(rounded_pts):
+    return round_to_sig_figs(curve_points, xfigures + 1, yfigures)
+
+  return rounded_pts
