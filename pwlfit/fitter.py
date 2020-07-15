@@ -496,7 +496,13 @@ class _WeightedLeastSquaresPWLSolver(object):
     if self._min_slope is None and self._max_slope is None:
       solution = np.linalg.lstsq(weighted_matrix, self._weighted_y, rcond=None)
       knot_ys = np.cumsum(solution[0])
-      squared_error = solution[1][0] if solution[1].size != 0 else 0.0
+      if solution[1].size == 0:
+        # Solution underdetermined; have to calculate error manually.
+        pred_wys = weighted_matrix.dot(solution[0])
+        squared_error = np.sum((pred_wys - self._weighted_y)**2)
+      else:
+        squared_error = solution[1][0]
+
       return knot_ys, squared_error
 
     # Bounded linear least squares via scipy.

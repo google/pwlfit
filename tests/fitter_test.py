@@ -435,6 +435,31 @@ class FitPWLPointsTest(test_util.PWLFitTest):
     np.testing.assert_array_equal(non_mono_y, mono_up_y)
     self.assertAlmostEqual(mono_up_error, non_mono_error)
 
+  def test_solver_squared_error_in_the_underdetermined_case(self):
+    x = [0., 4., 5.]
+    y = [0., 0., 2.]
+    w = np.ones_like(x)
+    knots = [1., 2., 3.]
+
+    # The x=1 and x=3 knots affect the squared error, so their y-values are
+    # determined by the system. However, the x=2 knot has no effect, so it can
+    # take on an infinite range of values.
+    # The expected curve is [(1., 0), (2., unknown), (3., 1.)].
+    expected_error = 2.0
+
+    nonmono_solver = fitter._WeightedLeastSquaresPWLSolver(x, y, w)
+    _, nonmono_error = nonmono_solver.solve(knots)
+    self.assertAlmostEqual(expected_error, nonmono_error)
+
+    mono_up_solver = fitter._WeightedLeastSquaresPWLSolver(x, y, w, min_slope=0)
+    _, mono_up_error = mono_up_solver.solve(knots)
+    self.assertAlmostEqual(expected_error, mono_up_error)
+
+    # The mono-down case is fully constrained, with best curve y = mean = 2/3.
+    mono_down_solver = fitter._WeightedLeastSquaresPWLSolver(
+        x, y, w, max_slope=0)
+    _, mono_down_error = mono_down_solver.solve(knots)
+    self.assertAlmostEqual(8./3, mono_down_error)
 
 if __name__ == '__main__':
   unittest.main()
