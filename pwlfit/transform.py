@@ -75,7 +75,7 @@ def _clip_extremes(x, y, w, pct_to_clip):
   """Clips the pct_to_clip first and last values by weight."""
   utils.expect(0 <= pct_to_clip < .5)
   if pct_to_clip == 0:
-    return w
+    return x, y, w
 
   w_cumsum = w.cumsum()
   w_sum = w_cumsum[-1]

@@ -134,7 +134,7 @@ class FindBestTransformTest(test_util.PWLFitTest):
     x = np.arange(10)
     y = np.ones(10)
     w = np.random.uniform(size=len(x))
-    found_transform = transform.find_best_transform(x, y, w)
+    found_transform = transform.find_best_transform(x, y, w, pct_to_clip=0)
     self.assertEqual(identity_transform, found_transform)
 
   def test_find_best_transform_is_identity_for_xs_constant_after_clipping(self):
