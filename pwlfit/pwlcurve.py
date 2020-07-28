@@ -1,4 +1,3 @@
-# Lint as: python2, python3
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,13 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
 """Classes and helpers for representing curves."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+import ast
+from typing import Callable, List, Sequence, Tuple
 import numpy as np
 from pwlfit import transform
 from pwlfit import utils
@@ -35,13 +30,19 @@ def _tosigfigs(x, num_figs):
 class PWLCurve(object):
   """An immutable class for representing a piecewise linear curve."""
 
-  def __init__(self, curve_points, transform_fn=transform.identity):
+  STR_TO_XFORM = {
+      fn.__name__: fn for fn in
+      [transform.identity, transform.symmetriclog1p, np.log, np.log1p]
+  }
+
+  def __init__(self,
+               curve_points: Sequence[Tuple[float, float]],
+               xform: Callable[[np.array], np.array] = transform.identity):
     """Initializer.
 
     Args:
-      curve_points: (iterable((float, float))): x,y control poins.
-      transform_fn: (callable(iterable(floats)) --> iterable(floats)): Transform
-        to perform before linear iterpolation.
+      curve_points: x,y control points.
+      xform: Transform to apply to x values before linear interpolation.
     """
     utils.expect(
         len(curve_points) >= 2, 'A PWLCurve must have at least two knots.')
@@ -53,25 +54,53 @@ class PWLCurve(object):
                  'Curve knot xs must be ordered.')
     self._curve_xs = curve_xs
     self._curve_ys = curve_ys
-    self._transform_fn = transform_fn
+    self._xform = xform
+
+  @classmethod
+  def from_string(cls, s: str) -> 'PWLCurve':
+    """Parses a PWLCurve from the given string.
+
+    Syntax is that emitted by __str__: PWLCurve({points}, xform="{xform_name}")
+
+    Only xforms present in STR_TO_XFORM will be parsed.
+
+    Args:
+      s: The string to parse.
+
+    Returns:
+      The parsed PWLCurve.
+    """
+    prefix = 'PWLCurve('
+    utils.expect(
+        s.startswith(prefix) and s.endswith(')'),
+        'String must begin with "%s" and end with ")"' % prefix)
+    s = s[len(prefix):-1]
+    idx = s.find('xform=')
+    if idx < 0:
+      return cls(ast.literal_eval(s))
+    xform_str = ast.literal_eval(s[idx + len('xform='):])
+    xform = cls.STR_TO_XFORM.get(xform_str)
+    utils.expect(xform is not None, 'Invalid xform "%s" specified' % xform_str)
+    control_points = ast.literal_eval(s[:s.rfind(',')].rstrip())
+    return cls(control_points, xform)
 
   @property
-  def curve_points(self):
+  def curve_points(self) -> List[Tuple[float, float]]:
     return list(zip(self._curve_xs, self._curve_ys))
 
   @property
-  def curve_xs(self):
+  def curve_xs(self) -> List[float]:
     return list(self._curve_xs)
 
   @property
-  def curve_ys(self):
+  def curve_ys(self) -> List[float]:
     return list(self._curve_ys)
 
   @property
-  def transform_fn(self):
-    return self._transform_fn
+  def xform(self) -> Callable[[Sequence[float]], Sequence[float]]:
+    return self._xform
 
-  def eval(self, xs):
+  def eval(self, xs) -> np.array:
     """Returns the result of evaluating the PWLCurve on the given xs.
 
     Args:
@@ -84,9 +113,9 @@ class PWLCurve(object):
     curve_ys = self._curve_ys
     # Clamp the inputs to the range of the control points.
     xs = np.clip(xs, curve_xs[0], curve_xs[-1])
-    if self._transform_fn is not None:
-      xs = self._transform_fn(xs)
-      curve_xs = self._transform_fn(curve_xs)
+    if self._xform is not None:
+      xs = self._xform(xs)
+      curve_xs = self._xform(curve_xs)
 
     indices = curve_xs.searchsorted(xs)
 
@@ -100,11 +129,13 @@ class PWLCurve(object):
 
     return next_y * ((xs - prev_x) / gap) + prev_y * ((next_x - xs) / gap)
 
-  def predict(self, xs):
+  def predict(self, xs) -> np.array:
     """Alias for eval()."""
     return self.eval(xs)
 
-  def round_to_sig_figs(self, xfigures, yfigures=None):
+  def round_to_sig_figs(self,
+                        xfigures: int,
+                        yfigures: int = None) -> 'PWLCurve':
     """Returns a new PWLCurve rounded to specified significant figures.
 
     A valid curve can't have duplicate control point xs. If the rounded curve
@@ -112,10 +143,10 @@ class PWLCurve(object):
     duplicates.
 
     Args:
-      xfigures: (int) Minimum number of decimal digits to keep. For example,
-        ndigits=2 rounds to 2 decimal digits (1.234 --> 1.2).
-      yfigures: (int): How many decimal digits to keep for y coordinates of
-        points If not set, will use xfigures.
+      xfigures: Minimum number of decimal digits to keep. For example, ndigits=2
+        rounds to 2 decimal digits (1.234 --> 1.2).
+      yfigures: How many decimal digits to keep for y coordinates of points If
+        not set, will use xfigures.
 
     Returns:
       A new PWLCurve rounded to the specified number of significant figures.
@@ -129,14 +160,18 @@ class PWLCurve(object):
       xfigures += 1
       rounded_xs = [_tosigfigs(x, xfigures) for x in self._curve_xs]
 
-    return PWLCurve(list(zip(rounded_xs, rounded_ys)), self._transform_fn)
+    return PWLCurve(list(zip(rounded_xs, rounded_ys)), self._xform)
+
+  def __eq__(self, o) -> bool:
+    return (isinstance(o, PWLCurve) and self.curve_xs == o.curve_xs and
+            self.curve_ys == o.curve_ys and self.xform == o.xform)
 
   def __repr__(self):
     return 'PWLCurve(%s, %s)' % (list(zip(self._curve_xs,
-                                          self._curve_ys)), self._transform_fn)
+                                          self._curve_ys)), self._xform)
 
   def __str__(self):
-    if self._transform_fn is transform.identity:
+    if self._xform is transform.identity:
       return 'PWLCurve(%s)' % self.round_to_sig_figs(4).curve_points
-    return 'PWLCurve(%s, %s)' % (self.round_to_sig_figs(4).curve_points,
-                                 self._transform_fn.__name__)
+    return 'PWLCurve(%s, xform="%s")' % (self.round_to_sig_figs(4).curve_points,
+                                         self._xform.__name__)

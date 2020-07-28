@@ -1,4 +1,3 @@
-# Lint as: python2, python3
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tests for pwlfit/curve."""
 import unittest
+from absl.testing import parameterized
 
 import numpy as np
 from pwlfit import pwlcurve
@@ -22,14 +21,14 @@ from pwlfit import test_util
 from pwlfit import transform
 
 
-class PWLCurveTest(test_util.PWLFitTest):
+class PWLCurveTest(test_util.PWLFitTest, parameterized.TestCase):
 
   def test_simple(self):
     curve = pwlcurve.PWLCurve([(1, 10), (2, 20)])
     self.assertEqual([(1, 10), (2, 20)], curve.curve_points)
     self.assertEqual([1, 2], curve.curve_xs)
     self.assertEqual([10, 20], curve.curve_ys)
-    self.assertIs(transform.identity, curve.transform_fn)
+    self.assertIs(transform.identity, curve.xform)
 
   def test_not_enough_points(self):
     with self.assertRaises(ValueError):
@@ -91,6 +90,51 @@ class PWLCurveTest(test_util.PWLFitTest):
     rounded_curve = curve.round_to_sig_figs(2)
     self.assertEqual([(1.2346, 5.4), (1.2347, 6.5), (5.6789, 14)],
                      rounded_curve.curve_points)
+
+  @parameterized.named_parameters(
+      ('not too sensitive',
+       pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)]),
+       pwlcurve.PWLCurve(([1, 1], [2, 2])),
+       True),
+      ('not a PWLCurve',
+       pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)]), 's', False),
+      ('different xs',
+       pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)]),
+       pwlcurve.PWLCurve([(10.0, 1.0), (20.0, 2.0)]),
+       False),
+      ('different ys',
+       pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)]),
+       pwlcurve.PWLCurve([(1.0, 10.0), (2.0, 20.0)]),
+       False),
+      ('different xform',
+       pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)]),
+       pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)], np.log),
+       False),
+  )
+  def test_eq(self, c1, c2, expected):
+    self.assertEqual(c1 == c2, expected)
+
+  @parameterized.named_parameters(
+      ('simple', 'PWLCurve([(1.0, 1.0), (2.0, 2.0)])', transform.identity),
+      ('xform', 'PWLCurve([(1.0, 1.0), (2.0, 2.0)], xform="log")', np.log),
+      ('xform spaces flexible',
+       'PWLCurve([(1.0, 1.0), (2.0, 2.0)]  ,  xform="log")', np.log),
+      ('point syntax is flexible', 'PWLCurve(([1, 1], [2.0, 2.0]))',
+       transform.identity))
+  def test_from_string(self, s, xform):
+    points = [(1.0, 1.0), (2.0, 2.0)]
+    curve = pwlcurve.PWLCurve(points, xform)
+    self.assertEqual(curve, pwlcurve.PWLCurve.from_string(s))
+    self.assertEqual(curve, pwlcurve.PWLCurve.from_string(str(curve)))
+
+  def test_from_string_bad_syntax(self):
+    with self.assertRaisesRegex(ValueError, 'must begin with'):
+      pwlcurve.PWLCurve.from_string('PWL Curve([(1,1),(2,2)])')
+
+  def test_From_string_bad_xform(self):
+    with self.assertRaisesRegex(ValueError, 'Invalid xform "foo"'):
+      pwlcurve.PWLCurve.from_string(
+          'PWLCurve([(1.0, 1.0), (2.0, 2.0)], xform="foo")')
 
 
 if __name__ == '__main__':
