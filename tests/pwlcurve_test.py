@@ -115,6 +115,19 @@ class PWLCurveTest(test_util.PWLFitTest, parameterized.TestCase):
     self.assertEqual(c1 == c2, expected)
 
   @parameterized.named_parameters(
+      ('simple',
+       pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)]),
+       'PWLCurve([(1, 1), (2, 2)])'),
+      ('xform',
+       pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)], np.log),
+       'PWLCurve([(1, 1), (2, 2)], xform="log")'),
+      ('rounds',
+       pwlcurve.PWLCurve([(1.23456789, 1.23456789), (2.0, 2.0)]),
+       'PWLCurve([(1.235, 1.235), (2, 2)])'))
+  def test_str(self, curve, expected):
+    self.assertEqual(str(curve), expected)
+
+  @parameterized.named_parameters(
       ('simple', 'PWLCurve([(1.0, 1.0), (2.0, 2.0)])', transform.identity),
       ('xform', 'PWLCurve([(1.0, 1.0), (2.0, 2.0)], xform="log")', np.log),
       ('xform spaces flexible',
@@ -131,7 +144,7 @@ class PWLCurveTest(test_util.PWLFitTest, parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, 'must begin with'):
       pwlcurve.PWLCurve.from_string('PWL Curve([(1,1),(2,2)])')
 
-  def test_From_string_bad_xform(self):
+  def test_from_string_bad_xform(self):
     with self.assertRaisesRegex(ValueError, 'Invalid xform "foo"'):
       pwlcurve.PWLCurve.from_string(
           'PWLCurve([(1.0, 1.0), (2.0, 2.0)], xform="foo")')

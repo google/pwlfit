@@ -171,7 +171,9 @@ class PWLCurve(object):
                                           self._curve_ys)), self._xform)
 
   def __str__(self):
+    points_str = '[%s]' % ', '.join(
+        '(%g, %g)' % (x, y)
+        for (x, y) in self.round_to_sig_figs(4).curve_points)
     if self._xform is transform.identity:
-      return 'PWLCurve(%s)' % self.round_to_sig_figs(4).curve_points
-    return 'PWLCurve(%s, xform="%s")' % (self.round_to_sig_figs(4).curve_points,
-                                         self._xform.__name__)
+      return 'PWLCurve(%s)' % points_str
+    return 'PWLCurve(%s, xform="%s")' % (points_str, self._xform.__name__)
