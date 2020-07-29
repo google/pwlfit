@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -126,7 +126,6 @@ class ExpectTest(test_util.PWLFitTest):
   def test_expect_does_nothing_when_true(self):
     utils.expect(True)
     utils.expect(True, 'True should be True.')
-    utils.expect(5 == 5)
 
   def test_expect_raises_when_false(self):
     with self.assertRaises(ValueError):

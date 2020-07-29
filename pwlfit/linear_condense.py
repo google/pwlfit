@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,17 +26,17 @@ we choose P' such that min_x(P) <= min_x(P') <= max_x(P') <= max_x(P). This
 property allows us to extend linear condensing from line fitting to PWLCurves.
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import math
-import numpy as np
+from typing import Sequence, Tuple
 
+import numpy as np
 from pwlfit import utils
 
 
-def _recenter_at_zero(x, y, w):
+def _recenter_at_zero(
+    x: np.ndarray, y: np.ndarray,
+    w: np.ndarray) -> Tuple[np.ndarray, np.ndarray, float, float]:
   """Shifts the centroid to zero.
 
   Args:
@@ -53,7 +53,9 @@ def _recenter_at_zero(x, y, w):
   return x - cx, y - cy, cx, cy
 
 
-def linear_condense(x, y, w):
+def linear_condense(
+    x: np.ndarray, y: np.ndarray,
+    w: np.ndarray) -> Tuple[Sequence[float], Sequence[float], Sequence[float]]:
   """Returns X', Y', W' that replicates the linear fit MSE of x, y, w.
 
   This function compresses an arbitrary number of (x,y,weight) points into at
@@ -113,7 +115,9 @@ def linear_condense(x, y, w):
           [w1, w2])
 
 
-def _condense_between_indices(sorted_x, y, w, sorted_indices):
+def _condense_between_indices(
+    sorted_x: np.ndarray, y: np.ndarray, w: np.ndarray,
+    sorted_indices: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
   """Condenses the points between each pair of indices into at most two."""
   condensed_x, condensed_y, condensed_w = [], [], []  # Output aggregators.
 
@@ -127,7 +131,9 @@ def _condense_between_indices(sorted_x, y, w, sorted_indices):
   return np.array(condensed_x), np.array(condensed_y), np.array(condensed_w)
 
 
-def condense_around_knots(sorted_x, y, w, sorted_knots):
+def condense_around_knots(
+    sorted_x: np.ndarray, y: np.ndarray, w: np.ndarray,
+    sorted_knots: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
   """Returns X', Y', W' that replicates the PWLFit MSE of x, y, w, knots.
 
   This function compresses an arbitrary number of (x,y,weight) points into at
@@ -160,7 +166,8 @@ def condense_around_knots(sorted_x, y, w, sorted_knots):
   return _condense_between_indices(sorted_x, y, w, knot_indices)
 
 
-def _greedy_weight_percentile_indices(w, target_num_uniques):
+def _greedy_weight_percentile_indices(w: np.ndarray,
+                                      target_num_uniques: int) -> np.ndarray:
   """Returns indices for weight percentiles with up to target_num_uniques.
 
   Chooses indices spaced equally by weight percentiles, including the first and
@@ -198,14 +205,17 @@ def _greedy_weight_percentile_indices(w, target_num_uniques):
     num_samples = num_samples * 2 - 1
 
 
-def _pick_knot_candidates(x, w, num_candidates):
+def _pick_knot_candidates(x: np.ndarray, w: np.ndarray,
+                          num_candidates: int) -> np.ndarray:
   """Pick knots equally spaced by weight percentile."""
   knot_indices = _greedy_weight_percentile_indices(w, num_candidates)
   knot_indices = utils.unique_on_sorted(knot_indices)  # Only keep uniques.
   return x[knot_indices]
 
 
-def sample_condense_points(sorted_x, y, w, num_knots):
+def sample_condense_points(
+    sorted_x: np.ndarray, y: np.ndarray, w: np.ndarray,
+    num_knots: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
   """Picks knots and linearly condenses (sorted_x, y, w) around those knots.
 
   Args:

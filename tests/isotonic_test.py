@@ -1,15 +1,11 @@
-# Lint as: python2, python3
+# Lint as: python3
 """Tests for google3.quality.ranklab.main.optimization.isotonic_regression."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import unittest
 
 import numpy as np
 from pwlfit import isotonic
 from pwlfit import test_util
-from six.moves import range
 
 
 class IsotonicRegressionTest(test_util.PWLFitTest):

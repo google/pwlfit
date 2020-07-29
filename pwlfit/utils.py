@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,14 +15,14 @@
 
 
 """Utilities for PWLFit."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
+from typing import Callable, Sequence, Tuple
 import numpy as np
 
 
-def fuse_sorted_points(sorted_xs, ys, ws):
+def fuse_sorted_points(
+    sorted_xs: np.ndarray, ys: np.ndarray,
+    ws: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
   """For each unique x in the array sorted_xs, fuse all points with that x.
 
   This fusion changes the mean squared error, but preserves the delta MSE
@@ -54,7 +54,7 @@ def fuse_sorted_points(sorted_xs, ys, ws):
   return x_fuses, y_averages, w_sums
 
 
-def unique_on_sorted(sorted_a):
+def unique_on_sorted(sorted_a: np.ndarray) -> np.ndarray:
   """Computes unique elements from the given sorted array.
 
   O(n) version of np.unique(sorted_a) that only works on pre-sorted arrays.
@@ -70,7 +70,7 @@ def unique_on_sorted(sorted_a):
   return sorted_a[is_unique]
 
 
-def count_uniques_on_sorted(sorted_a):
+def count_uniques_on_sorted(sorted_a: np.ndarray) -> int:
   """Computes the number of unique elements in a sorted array.
 
   Args:
@@ -84,7 +84,10 @@ def count_uniques_on_sorted(sorted_a):
   return 1 + np.count_nonzero(sorted_a[1:] != sorted_a[:-1])
 
 
-def eval_pwl_curve(xs, curve_points, transform_fn=None):
+def eval_pwl_curve(
+    xs: np.ndarray,
+    curve_points: Sequence[Tuple[float, float]],
+    transform_fn: Callable[[np.ndarray], np.ndarray] = None) -> np.ndarray:
   """Evaluate a given PWLCurve on data.
 
   Args:
@@ -124,12 +127,12 @@ def eval_pwl_curve(xs, curve_points, transform_fn=None):
   return next_y * ((xs - prev_x) / gap) + prev_y * ((next_x - xs) / gap)
 
 
-def expect(condition, message=''):
+def expect(condition: bool, message: str = '') -> None:
   """Raises a ValueError if condition isn't truthy.
 
   Args:
     condition: (boolean) Whether or not to raise a ValueError.
-    message: (optional float) The message raised with the error.
+    message: (optional str) The message raised with the error.
 
   Raises:
     ValueError: [message]
@@ -138,17 +141,20 @@ def expect(condition, message=''):
     raise ValueError(message)
 
 
-def _tosigfigs(x, num_figs):
+def _tosigfigs(x: float, num_figs: int) -> float:
+  """Rounds x to the specified number of significant figures."""
   num_figs_str = '%d' % num_figs
   return float(('%.' + num_figs_str + 'g') % x)
 
 
-def _xsunique(pts):
+def _xsunique(pts: Sequence[Tuple[float, float]]) -> bool:
   xs = [x for x, _ in pts]
   return len(xs) == len(set(xs))
 
 
-def round_to_sig_figs(curve_points, xfigures, yfigures=None):
+def round_to_sig_figs(curve_points: Sequence[Tuple[float, float]],
+                      xfigures: int,
+                      yfigures: int = None) -> Sequence[Tuple[float, float]]:
   """Rounds coordinates to specified number of significant figures.
 
   A valid curve can't have duplicate control point xs. If the rounded curve has

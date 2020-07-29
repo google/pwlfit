@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,16 +16,14 @@
 
 """Isotonic regression via pool adjacent violators."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+from typing import Sequence
 import numpy as np
 from pwlfit import utils
-from six.moves import range
 
 
-def isotonic_regression(sequence, weights=None, increasing=True):
+def isotonic_regression(sequence: Sequence[float],
+                        weights: Sequence[float] = None,
+                        increasing: bool = True) -> np.ndarray:
   """Returns a monotonic sequence which most closely approximates sequence.
 
   Args:
@@ -57,14 +55,15 @@ def isotonic_regression(sequence, weights=None, increasing=True):
 class _Block(object):
   """Represents a contiguous subarray of the provided array."""
 
-  def __init__(self, array, weights, index):
+  def __init__(self, array: Sequence[float], weights: Sequence[float],
+               index: int):
     """Class constructor."""
     self.start = index
     self.end = index + 1
     self.sum = array[index] * weights[index]
     self.weight_sum = weights[index]
 
-  def merge_with_next_block(self, right):
+  def merge_with_next_block(self, right: '_Block') -> None:
     """Merges this block with the block immediately to the right of it.
 
     O(1).
@@ -80,19 +79,20 @@ class _Block(object):
     self.weight_sum += right.weight_sum
     self.end = right.end
 
-  def length(self):
+  def length(self) -> int:
     return self.end - self.start
 
-  def value(self):
+  def value(self) -> float:
     return self.sum / self.weight_sum
 
 
-def _pool_adjacent_violators(sequence, weights):
+def _pool_adjacent_violators(sequence: Sequence[float],
+                             weights: Sequence[float]) -> np.ndarray:
   """Implements the Pool Adjacent Violators algorithm for isotonic regression.
 
   Args:
-    sequence: (numpy array of floats) sequence to monotonize.
-    weights: (numpy array of floats) weights to use for the elements in
+    sequence: (sequence of floats) sequence to monotonize.
+    weights: (sequence of floats) weights to use for the elements in
       sequence.
 
   Returns:

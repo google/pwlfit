@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,10 +16,6 @@
 
 """Tests for pwlfit/fitter."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import unittest
 
 import numpy as np
@@ -27,7 +23,6 @@ from pwlfit import fitter
 from pwlfit import test_util
 from pwlfit import transform
 from pwlfit import utils
-from six.moves import zip
 
 
 def pwl_predict(x, y, *args, **kwargs):

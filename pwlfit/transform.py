@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,15 +16,13 @@
 
 """Routines for picking transform functions over a weighted data set."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+from typing import Callable, Tuple
 import numpy as np
 from pwlfit import utils
 
 
-def weighted_pearson_correlation(x, y, w):
+def weighted_pearson_correlation(x: np.ndarray, y: np.ndarray,
+                                 w: np.ndarray) -> float:
   """Computes weighted correlation between x and y.
 
   Args:
@@ -55,7 +53,7 @@ def weighted_pearson_correlation(x, y, w):
   return covxy / np.sqrt(covxx * covyy)
 
 
-def symmetriclog1p(x):
+def symmetriclog1p(x: np.ndarray) -> np.ndarray:
   """An extension of log1p(x >= 0) to all real x.
 
   Args:
@@ -67,11 +65,13 @@ def symmetriclog1p(x):
   return np.sign(x) * np.log1p(np.abs(x))
 
 
-def identity(x):
+def identity(x: np.ndarray) -> np.ndarray:
   return x
 
 
-def _clip_extremes(x, y, w, pct_to_clip):
+def _clip_extremes(
+    x: np.ndarray, y: np.ndarray, w: np.ndarray,
+    pct_to_clip: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
   """Clips the pct_to_clip first and last values by weight."""
   utils.expect(0 <= pct_to_clip < .5)
   if pct_to_clip == 0:
@@ -94,7 +94,12 @@ def _clip_extremes(x, y, w, pct_to_clip):
   return x, y, w
 
 
-def find_best_transform(sorted_x, y, w, pct_to_clip=0.005, identity_bias=1e-6):
+def find_best_transform(
+    sorted_x: np.ndarray,
+    y: np.ndarray,
+    w: np.ndarray,
+    pct_to_clip: float = 0.005,
+    identity_bias: float = 1e-6) -> Callable[[np.ndarray], np.ndarray]:
   """Finds the best transformation to use for PWLCurve fitting.
 
   Chooses between identity, log, logp1, and symmetriclogp1.

@@ -37,7 +37,7 @@ class PWLCurve(object):
 
   def __init__(self,
                curve_points: Sequence[Tuple[float, float]],
-               xform: Callable[[np.array], np.array] = transform.identity):
+               xform: Callable[[np.ndarray], np.ndarray] = transform.identity):
     """Initializer.
 
     Args:
@@ -97,10 +97,10 @@ class PWLCurve(object):
     return list(self._curve_ys)
 
   @property
-  def xform(self) -> Callable[[Sequence[float]], Sequence[float]]:
+  def xform(self) -> Callable[[np.ndarray], np.ndarray]:
     return self._xform
 
-  def eval(self, xs) -> np.array:
+  def eval(self, xs) -> np.ndarray:
     """Returns the result of evaluating the PWLCurve on the given xs.
 
     Args:
@@ -129,7 +129,7 @@ class PWLCurve(object):
 
     return next_y * ((xs - prev_x) / gap) + prev_y * ((next_x - xs) / gap)
 
-  def predict(self, xs) -> np.array:
+  def predict(self, xs) -> np.ndarray:
     """Alias for eval()."""
     return self.eval(xs)
 

@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,30 +16,27 @@
 
 """Routines for approximating data with piecewise linear curves."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+from typing import Callable, List, Optional, Sequence, Tuple
 import numpy as np
 from pwlfit import isotonic
 from pwlfit import linear_condense
 from pwlfit import transform
 from pwlfit import utils
 import scipy.optimize
-from six.moves import map
-from six.moves import range
-from six.moves import zip
 
 
-def fit_pwl(x,
-            y,
-            w=None,
-            num_segments=3,
-            num_samples=100,
-            mono=True,
-            min_slope=None,
-            max_slope=None,
-            x_transform=None):
+def fit_pwl(
+    x: Sequence[float],
+    y: Sequence[float],
+    w: Optional[Sequence[float]] = None,
+    num_segments: int = 3,
+    num_samples: int = 100,
+    mono: bool = True,
+    min_slope: Optional[float] = None,
+    max_slope: Optional[float] = None,
+    x_transform: Optional[Callable[[np.ndarray], np.ndarray]] = None
+) -> Tuple[List[Tuple[float, float]],
+           Optional[Callable[[np.ndarray], np.ndarray]]]:
   """Fits a PWLCurve from x to y, minimizing weighted MSE.
 
   Attempts to find a piecewise linear curve which is as close to ys as possible,
@@ -53,9 +50,9 @@ def fit_pwl(x,
   for each.
 
   Args:
-    x: (numpy array) independent variable.
-    y: (numpy array) dependent variable.
-    w: (numpy array) the weights on data points.
+    x: (Sequence of floats) independent variable.
+    y: (Sequence of floats) dependent variable.
+    w: (None or Sequence of floats) the weights on data points.
     num_segments: (positive int) Number of linear segments. More segments
       increases quality at the cost of complexity.
     num_samples: (positive int) Number of potential knot locations to try for
@@ -112,7 +109,11 @@ def fit_pwl(x,
   return curve_points, x_transform
 
 
-def sort_and_sample(x, y, w, downsample_to=1e6):
+def sort_and_sample(
+    x: Sequence[float],
+    y: Sequence[float],
+    w: Optional[Sequence[float]],
+    downsample_to: float = 1e6) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
   """Samples and sorts the data to fit a PWLCurve on.
 
   Samples each point with equal likelihood, once or zero times per point. Weight
@@ -120,10 +121,10 @@ def sort_and_sample(x, y, w, downsample_to=1e6):
   of final points is not guaranteed.
 
   Args:
-    x: (numerical numpy array) The independent variable.
-    y: (numerical numpy array) The dependent variable.
-    w: (None or numerical numpy array) The weights of data points. Weights are
-      NOT used in downsampling.
+    x: (Sequence of floats) The independent variable.
+    y: (Sequence of floats) The dependent variable.
+    w: (None or Sequence of floats) The weights of data points. Weights are NOT
+      used in downsampling.
     downsample_to: (int or float) The approximate number of samples to take.
 
   Raises:
@@ -171,7 +172,9 @@ def sort_and_sample(x, y, w, downsample_to=1e6):
   return x, y, w
 
 
-def _get_mono_slope_bounds(y, w, min_slope, max_slope):
+def _get_mono_slope_bounds(
+    y: np.ndarray, w: np.ndarray, min_slope: Optional[float],
+    max_slope: Optional[float]) -> Tuple[Optional[float], Optional[float]]:
   """Adjusts the slope bounds to impose monotonicity in the ideal direction.
 
   Args:
@@ -201,7 +204,7 @@ def _get_mono_slope_bounds(y, w, min_slope, max_slope):
   return min_slope, max_slope
 
 
-def _is_increasing(y, w):
+def _is_increasing(y: Sequence[float], w: Sequence[float]) -> bool:
   """Returns whether a mono-up or a mono-down sequence better approximates y.
 
   Tries to monotonize values in both the increasing and decreasing directions
@@ -209,8 +212,8 @@ def _is_increasing(y, w):
   decreasing sequence gives the better fit, as measured by mean squared error.
 
   Args:
-    y: (numpy array of floats) sequence to monotonize.
-    w: (numpy array of floats) weights.
+    y: (sequence of floats) sequence to monotonize.
+    w: (sequence of floats) weights.
 
   Returns:
     True if a monotonically increasing sequence is an equal or better fit to the
@@ -224,13 +227,15 @@ def _is_increasing(y, w):
   return increasing_norm <= decreasing_norm
 
 
-def fit_pwl_points(x_knots,
-                   x,
-                   y,
-                   w,
-                   num_segments,
-                   min_slope=None,
-                   max_slope=None):
+def fit_pwl_points(
+    x_knots: np.ndarray,
+    x: np.ndarray,
+    y: np.ndarray,
+    w: np.ndarray,
+    num_segments: int,
+    min_slope: Optional[float] = None,
+    max_slope: Optional[float] = None
+) -> Tuple[Sequence[float], Sequence[float]]:
   """Fits a num_segments segment PWL to the sample points.
 
   Args:
@@ -263,7 +268,10 @@ def fit_pwl_points(x_knots,
   return _fit_pwl_approx(x_knots, solver.solve, num_segments)
 
 
-def _fit_pwl_approx(x_knots, solve_fn, num_segments):
+def _fit_pwl_approx(
+    x_knots: Sequence[float],
+    solve_fn: Callable[[Sequence[float]], Tuple[np.ndarray, float]],
+    num_segments: int) -> Tuple[Sequence[float], Sequence[float]]:
   """Heuristic search for the best combination of knot xs and their y-values.
 
   Args:
@@ -301,7 +309,7 @@ def _fit_pwl_approx(x_knots, solve_fn, num_segments):
     cur_knots = sorted(cur_knots + [best_pnt])
     return cur_knots, list(best_knot_values), best_value
 
-  best_value, best_knots, best_knot_values = (np.inf, [x_knots[0]], None)
+  best_value, best_knots, best_knot_values = (np.inf, [x_knots[0]], [0])
   for _ in range(num_segments):
     best_knots, best_knot_values, best_value = add_one_point(best_knots)
 
@@ -382,7 +390,12 @@ class _WeightedLeastSquaresPWLSolver(object):
   of knot_xs for the same x_values, y_values, weights, and slope restrictions.
   """
 
-  def __init__(self, x, y, w, min_slope=None, max_slope=None):
+  def __init__(self,
+               x: np.ndarray,
+               y: np.ndarray,
+               w: np.ndarray,
+               min_slope: Optional[float] = None,
+               max_slope: Optional[float] = None):
     """Constructor.
 
     Args:
@@ -408,7 +421,7 @@ class _WeightedLeastSquaresPWLSolver(object):
     self._min_slope = min_slope
     self._max_slope = max_slope
 
-  def _get_weighted_matrix(self, knot_xs):
+  def _get_weighted_matrix(self, knot_xs: Sequence[float]) -> np.ndarray:
     """Computes the matrix 'A' in ||b - Av||^2, weighted by _weight_matrix.
 
     Args:
@@ -458,7 +471,9 @@ class _WeightedLeastSquaresPWLSolver(object):
     weighted_matrix = matrix * self._sqrt_w
     return weighted_matrix
 
-  def _get_bounds_on_y(self, knot_xs):
+  def _get_bounds_on_y(
+      self,
+      knot_xs: Sequence[float]) -> Tuple[Sequence[float], Sequence[float]]:
     """Computes the upper and lower bounds on the delta-ys between knots."""
     knot_xs = np.array(knot_xs, copy=False)
     delta_knot_xs = knot_xs[1:] - knot_xs[:-1]
@@ -476,7 +491,7 @@ class _WeightedLeastSquaresPWLSolver(object):
 
     return lower_bounds, upper_bounds
 
-  def solve(self, knot_xs):
+  def solve(self, knot_xs: Sequence[float]) -> Tuple[np.ndarray, float]:
     """Computes the weighted least squares PWL knot ys for the given knot xs.
 
     Args:
