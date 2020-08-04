@@ -63,6 +63,13 @@ class PWLCurveTest(test_util.PWLFitTest, parameterized.TestCase):
     expected_ys = [5, 5, 7, 13, 14, 15, 15]
     self.assert_allclose(expected_ys, curve.eval(exp_x))
 
+  def test_eval_clamping_with_differing_float_precision(self):
+    curve = pwlcurve.PWLCurve([(1.0, -0.07331), (2.0, -0.1255)], xform=np.log1p)
+    xs = np.array([0., 1., 2., 3.], dtype=np.float32)
+
+    expected_ys = [-0.07331, -0.07331, -0.1255, -0.1255]
+    self.assert_allclose(expected_ys, curve.eval(xs))
+
   def test_round(self):
     curve = pwlcurve.PWLCurve([(1.234, 5.4321), (5.6789, 14.321)])
     rounded_curve = curve.round_to_sig_figs(2)

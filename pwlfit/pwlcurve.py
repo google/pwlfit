@@ -47,7 +47,8 @@ class PWLCurve(object):
     utils.expect(
         len(curve_points) >= 2, 'A PWLCurve must have at least two knots.')
     curve_xs, curve_ys = zip(*curve_points)
-    curve_xs, curve_ys = np.asarray(curve_xs), np.asarray(curve_ys)
+    curve_xs, curve_ys = (np.asarray(curve_xs, dtype=float),
+                          np.asarray(curve_ys, dtype=float))
     utils.expect(
         len(set(curve_xs)) == len(curve_xs), 'Curve knot xs must be unique.')
     utils.expect((np.sort(curve_xs) == curve_xs).all(),
@@ -112,6 +113,7 @@ class PWLCurve(object):
     curve_xs = self._curve_xs
     curve_ys = self._curve_ys
     # Clamp the inputs to the range of the control points.
+    xs = np.array(xs, dtype=curve_xs.dtype, copy=False)
     xs = np.clip(xs, curve_xs[0], curve_xs[-1])
     if self._xform is not None:
       xs = self._xform(xs)
