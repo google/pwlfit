@@ -30,7 +30,6 @@ setuptools.setup(
     install_requires=[
         "numpy",
         "scipy",
-        "six",
     ],
     tests_require=[
         "nose",

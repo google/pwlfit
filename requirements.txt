@@ -1,5 +1,4 @@
 absl-py
 numpy
 scipy
-six
 nose

@@ -19,7 +19,6 @@ import unittest
 import numpy as np
 from pwlfit import test_util
 from pwlfit import utils
-import six
 
 
 def _best_fit_line(x, y, w):
@@ -131,7 +130,7 @@ class ExpectTest(test_util.PWLFitTest):
     with self.assertRaises(ValueError):
       utils.expect(False)
 
-    with six.assertRaisesRegex(self, ValueError, 'Value is False'):
+    with self.assertRaisesRegex(ValueError, 'Value is False'):
       utils.expect(False, 'Value is False.')
 
 
