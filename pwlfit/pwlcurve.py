@@ -25,28 +25,25 @@ def _tosigfigs(x, num_figs):
   return float(('%.' + num_figs_str + 'g') % x)
 
 
-# TODO(walkerravina): Refactor the rest of the library to use this class
-# (e.g. have fitter.fit_pwl return instances of this class).
 class PWLCurve(object):
   """An immutable class for representing a piecewise linear curve."""
 
-  STR_TO_XFORM = {
+  STR_TO_FX = {
       fn.__name__: fn for fn in
       [transform.identity, transform.symmetriclog1p, np.log, np.log1p]
   }
 
   def __init__(self,
-               curve_points: Sequence[Tuple[float, float]],
-               xform: Callable[[np.ndarray], np.ndarray] = transform.identity):
+               points: Sequence[Tuple[float, float]],
+               fx: Callable[[np.ndarray], np.ndarray] = transform.identity):
     """Initializer.
 
     Args:
-      curve_points: x,y control points.
-      xform: Transform to apply to x values before linear interpolation.
+      points: x,y control points.
+      fx: Transform to apply to x values before linear interpolation.
     """
-    utils.expect(
-        len(curve_points) >= 2, 'A PWLCurve must have at least two knots.')
-    curve_xs, curve_ys = zip(*curve_points)
+    utils.expect(len(points) >= 2, 'A PWLCurve must have at least two knots.')
+    curve_xs, curve_ys = zip(*points)
     curve_xs, curve_ys = (np.asarray(curve_xs, dtype=float),
                           np.asarray(curve_ys, dtype=float))
     utils.expect(
@@ -55,15 +52,15 @@ class PWLCurve(object):
                  'Curve knot xs must be ordered.')
     self._curve_xs = curve_xs
     self._curve_ys = curve_ys
-    self._xform = xform
+    self._fx = fx
 
   @classmethod
   def from_string(cls, s: str) -> 'PWLCurve':
     """Parses a PWLCurve from the given string.
 
-    Syntax is that emitted by __str__: PWLCurve({points}, xform="{xform_name}")
+    Syntax is that emitted by __str__: PWLCurve({points}, fx="{fx_name}")
 
-    Only xforms present in STR_TO_XFORM will be parsed.
+    Only fxs present in STR_TO_FX will be parsed.
 
     Args:
       s: The string to parse.
@@ -76,30 +73,30 @@ class PWLCurve(object):
         s.startswith(prefix) and s.endswith(')'),
         'String must begin with "%s" and end with ")"' % prefix)
     s = s[len(prefix):-1]
-    idx = s.find('xform=')
+    idx = s.find('fx=')
     if idx < 0:
       return cls(ast.literal_eval(s))
-    xform_str = ast.literal_eval(s[idx + len('xform='):])
-    xform = cls.STR_TO_XFORM.get(xform_str)
-    utils.expect(xform is not None, 'Invalid xform "%s" specified' % xform_str)
+    fx_str = ast.literal_eval(s[idx + len('fx='):])
+    fx = cls.STR_TO_FX.get(fx_str)
+    utils.expect(fx is not None, 'Invalid fx "%s" specified' % fx_str)
     control_points = ast.literal_eval(s[:s.rfind(',')].rstrip())
-    return cls(control_points, xform)
+    return cls(control_points, fx)
 
   @property
-  def curve_points(self) -> List[Tuple[float, float]]:
+  def points(self) -> List[Tuple[float, float]]:
     return list(zip(self._curve_xs, self._curve_ys))
 
   @property
-  def curve_xs(self) -> List[float]:
+  def xs(self) -> List[float]:
     return list(self._curve_xs)
 
   @property
-  def curve_ys(self) -> List[float]:
+  def ys(self) -> List[float]:
     return list(self._curve_ys)
 
   @property
-  def xform(self) -> Callable[[np.ndarray], np.ndarray]:
-    return self._xform
+  def fx(self) -> Callable[[np.ndarray], np.ndarray]:
+    return self._fx
 
   def eval(self, xs) -> np.ndarray:
     """Returns the result of evaluating the PWLCurve on the given xs.
@@ -115,9 +112,9 @@ class PWLCurve(object):
     # Clamp the inputs to the range of the control points.
     xs = np.array(xs, dtype=curve_xs.dtype, copy=False)
     xs = np.clip(xs, curve_xs[0], curve_xs[-1])
-    if self._xform is not None:
-      xs = self._xform(xs)
-      curve_xs = self._xform(curve_xs)
+    if self._fx is not None:
+      xs = self._fx(xs)
+      curve_xs = self._fx(curve_xs)
 
     indices = curve_xs.searchsorted(xs)
 
@@ -162,20 +159,19 @@ class PWLCurve(object):
       xfigures += 1
       rounded_xs = [_tosigfigs(x, xfigures) for x in self._curve_xs]
 
-    return PWLCurve(list(zip(rounded_xs, rounded_ys)), self._xform)
+    return PWLCurve(list(zip(rounded_xs, rounded_ys)), self._fx)
 
   def __eq__(self, o) -> bool:
-    return (isinstance(o, PWLCurve) and self.curve_xs == o.curve_xs and
-            self.curve_ys == o.curve_ys and self.xform == o.xform)
+    return (isinstance(o, PWLCurve) and self.points == o.points and
+            self.fx == o.fx)
 
   def __repr__(self):
     return 'PWLCurve(%s, %s)' % (list(zip(self._curve_xs,
-                                          self._curve_ys)), self._xform)
+                                          self._curve_ys)), self._fx)
 
   def __str__(self):
     points_str = '[%s]' % ', '.join(
-        '(%g, %g)' % (x, y)
-        for (x, y) in self.round_to_sig_figs(4).curve_points)
-    if self._xform is transform.identity:
+        '(%g, %g)' % (x, y) for (x, y) in self.round_to_sig_figs(4).points)
+    if self._fx is transform.identity:
       return 'PWLCurve(%s)' % points_str
-    return 'PWLCurve(%s, xform="%s")' % (points_str, self._xform.__name__)
+    return 'PWLCurve(%s, fx="%s")' % (points_str, self._fx.__name__)

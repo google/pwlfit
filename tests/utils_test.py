@@ -95,31 +95,6 @@ class UniqueOnSortedTest(test_util.PWLFitTest):
     self.assertEqual(len(unique_x), utils.count_uniques_on_sorted(x))
 
 
-class EvalPWLCurveTest(test_util.PWLFitTest):
-
-  def test_eval(self):
-    curve = [(1., 5.), (5., 13.), (10., 15.)]
-    x = [0, 1, 2, 5, 7.5, 10, 20]
-    expected_y = [5, 5, 7, 13, 14, 15, 15]
-    predicted_y = utils.eval_pwl_curve(x, curve)
-    self.assert_allclose(expected_y, predicted_y)
-
-  def test_eval_with_exp_transform(self):
-    curve = [(1., 5.), (5., 13.), (10., 15.)]
-    x = [0, 1, 2, 5, 7.5, 10, 20]
-
-    # Shift x to exponential space.
-    curve_x, curve_y = zip(*curve)
-    curve_x = np.exp(curve_x)
-    exp_curve = list(zip(curve_x, curve_y))
-    exp_x = np.exp(x)
-
-    # Perform interpolation in the log-x space, counteracting the shift in x.
-    expected_y = [5, 5, 7, 13, 14, 15, 15]
-    predicted_y = utils.eval_pwl_curve(exp_x, exp_curve, np.log)
-    self.assert_allclose(expected_y, predicted_y)
-
-
 class ExpectTest(test_util.PWLFitTest):
 
   def test_expect_does_nothing_when_true(self):
@@ -132,43 +107,6 @@ class ExpectTest(test_util.PWLFitTest):
 
     with self.assertRaisesRegex(ValueError, 'Value is False'):
       utils.expect(False, 'Value is False.')
-
-
-class RoundToSigFigsTest(test_util.PWLFitTest):
-
-  def test_round(self):
-    curve = [(1.234, 5.4321), (5.6789, 14.321)]
-    rounded_curve = utils.round_to_sig_figs(curve, 2)
-    expected_curve = [(1.2, 5.4), (5.7, 14)]
-    self.assertEqual(expected_curve, rounded_curve)
-
-  def test_round_ydigits(self):
-    curve = [(1.234, 5.4321), (5.6789, 14.321)]
-    rounded_curve = utils.round_to_sig_figs(curve, 2, 4)
-    expected_curve = [(1.2, 5.432), (5.7, 14.32)]
-    self.assertEqual(expected_curve, rounded_curve)
-
-  def test_round_large_values(self):
-    curve = [(1234, 54321), (56789, 14321)]
-    rounded_curve = utils.round_to_sig_figs(curve, 2)
-    expected_curve = [(1200, 54000), (57000, 14000)]
-    self.assertEqual(expected_curve, rounded_curve)
-
-  def test_round_no_change(self):
-    curve = [(1., 5.), (5., 13.), (10., 15.)]
-    rounded_curve = utils.round_to_sig_figs(curve, 2)
-    self.assertEqual(curve, rounded_curve)
-
-  def test_round_increases_figs_for_close_xs(self):
-    curve = [(1.23456, 5.4321), (1.23467, 6.5432), (5.6789, 14.321)]
-    rounded_curve = utils.round_to_sig_figs(curve, 2)
-    expected_curve = [(1.2346, 5.4), (1.2347, 6.5), (5.6789, 14)]
-    self.assertEqual(expected_curve, rounded_curve)
-
-  def test_round_raises_value_error_for_repeat_xs(self):
-    bad_curve = [(1., 5.), (1., 13.), (10., 15.)]
-    with self.assertRaises(ValueError):
-      utils.round_to_sig_figs(bad_curve, 2)
 
 
 if __name__ == '__main__':

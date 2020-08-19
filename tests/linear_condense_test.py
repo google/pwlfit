@@ -19,6 +19,7 @@ import unittest
 
 import numpy as np
 from pwlfit import linear_condense
+from pwlfit import pwlcurve
 from pwlfit import test_util
 from pwlfit import utils
 
@@ -37,9 +38,8 @@ def _best_fit_line(x, y, w):
   return slope, intercept
 
 
-def _curve_error_on_points(x, y, w, curve_points, transform_fn=None):
-  pred_y = utils.eval_pwl_curve(x, curve_points, transform_fn)
-  return np.average((y - pred_y)**2, weights=w)
+def _curve_error_on_points(x, y, w, curve):
+  return np.average((y - curve.eval(x))**2, weights=w)
 
 
 class LinearCondenseTest(test_util.PWLFitTest):
@@ -246,8 +246,8 @@ class LinearCondenseTest(test_util.PWLFitTest):
     # Generate two random PWLCurves using the knot_xs.
     knot_ys_1 = np.random.normal(size=len(knot_xs))
     knot_ys_2 = np.random.normal(size=len(knot_xs))
-    pwlcurve_1 = list(zip(knot_xs, knot_ys_1))
-    pwlcurve_2 = list(zip(knot_xs, knot_ys_2))
+    pwlcurve_1 = pwlcurve.PWLCurve(list(zip(knot_xs, knot_ys_1)))
+    pwlcurve_2 = pwlcurve.PWLCurve(list(zip(knot_xs, knot_ys_2)))
 
     # Now generate the condensed points.
     condensed_x, condensed_y, condensed_w = (
@@ -282,8 +282,8 @@ class LinearCondenseTest(test_util.PWLFitTest):
     # Generate two random PWLCurves using the knot_xs.
     knot_ys_1 = np.random.normal(size=len(knot_xs))
     knot_ys_2 = np.random.normal(size=len(knot_xs))
-    pwlcurve_1 = list(zip(knot_xs, knot_ys_1))
-    pwlcurve_2 = list(zip(knot_xs, knot_ys_2))
+    pwlcurve_1 = pwlcurve.PWLCurve(list(zip(knot_xs, knot_ys_1)))
+    pwlcurve_2 = pwlcurve.PWLCurve(list(zip(knot_xs, knot_ys_2)))
 
     # Now generate the condensed points.
     condensed_x, condensed_y, condensed_w = (
@@ -436,8 +436,8 @@ class SamplingTest(test_util.PWLFitTest):
     # Generate two random PWLCurves using the knot_xs.
     knot_ys_1 = np.random.normal(size=len(knot_xs))
     knot_ys_2 = np.random.normal(size=len(knot_xs))
-    pwlcurve_1 = list(zip(knot_xs, knot_ys_1))
-    pwlcurve_2 = list(zip(knot_xs, knot_ys_2))
+    pwlcurve_1 = pwlcurve.PWLCurve(list(zip(knot_xs, knot_ys_1)))
+    pwlcurve_2 = pwlcurve.PWLCurve(list(zip(knot_xs, knot_ys_2)))
 
     # Ensure delta line MSEs are the same on the full and condensed data.
     full_data_mse_1 = _curve_error_on_points(x, y, w, pwlcurve_1)

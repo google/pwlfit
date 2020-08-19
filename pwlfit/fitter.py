@@ -16,10 +16,11 @@
 
 """Routines for approximating data with piecewise linear curves."""
 
-from typing import Callable, List, Optional, Sequence, Tuple
+from typing import Callable, Optional, Sequence, Tuple
 import numpy as np
 from pwlfit import isotonic
 from pwlfit import linear_condense
+from pwlfit import pwlcurve
 from pwlfit import transform
 from pwlfit import utils
 import scipy.optimize
@@ -34,9 +35,8 @@ def fit_pwl(
     mono: bool = True,
     min_slope: Optional[float] = None,
     max_slope: Optional[float] = None,
-    x_transform: Optional[Callable[[np.ndarray], np.ndarray]] = None
-) -> Tuple[List[Tuple[float, float]],
-           Optional[Callable[[np.ndarray], np.ndarray]]]:
+    fx: Optional[Callable[[np.ndarray],
+                          np.ndarray]] = None) -> pwlcurve.PWLCurve:
   """Fits a PWLCurve from x to y, minimizing weighted MSE.
 
   Attempts to find a piecewise linear curve which is as close to ys as possible,
@@ -66,25 +66,24 @@ def fit_pwl(
       knots. Set to 0 for a monotone increasing solution.
     max_slope: (None or float) Maximum slope between each adjacent pair of
       knots. Set to 0 for a monotone decreasing solution.
-    x_transform: (None or a strictly increasing 1D function): User-specified
+    fx: (None or a strictly increasing 1D function): User-specified
       transform on x, to apply before piecewise-linear curve fitting. If None,
       fit_pwl chooses a transform using a heuristic. To specify fitting with no
       transform, pass in transform.identity.
 
   Returns:
-    Tuple consisting of ([(x,y) knots], transform_fn). The curve performs linear
-    interpolation in the transform_fn(x) space.
+    The fit curve.
   """
   utils.expect(num_segments > 0, 'Cannot fit %d segment PWL' % num_segments)
   utils.expect(num_samples > num_segments,
                'num_samples must be at least num_segments + 1')
 
   x, y, w = sort_and_sample(x, y, w)
-  if x_transform is None:
-    x_transform = transform.find_best_transform(x, y, w)
+  if fx is None:
+    fx = transform.find_best_transform(x, y, w)
 
   original_x = x
-  trans_x = x_transform(x)
+  trans_x = fx(x)
   utils.expect(np.isfinite(trans_x[[0, -1]]).all(),
                'Transform must be defined on x.')
 
@@ -106,7 +105,7 @@ def fit_pwl(
     curve_points = [(x_pnts[0] - 1, y_pnts[0]), (x_pnts[0], y_pnts[0])]
   else:
     curve_points = list(zip(x_pnts, y_pnts))
-  return curve_points, x_transform
+  return pwlcurve.PWLCurve(curve_points, fx)
 
 
 def sort_and_sample(

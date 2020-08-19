@@ -20,50 +20,47 @@ import unittest
 
 import numpy as np
 from pwlfit import fitter
+from pwlfit import pwlcurve
 from pwlfit import test_util
 from pwlfit import transform
-from pwlfit import utils
 
 
 def pwl_predict(x, y, *args, **kwargs):
   """Test utility to fit and evaluate a curve in one function."""
-  curve, trans_fn = fitter.fit_pwl(x, y, *args, **kwargs)
-  return utils.eval_pwl_curve(x, curve, trans_fn)
+  return fitter.fit_pwl(x, y, *args, **kwargs).eval(x)
 
 
-def _curve_error_on_points(x, y, w, curve_points, transform_fn=None):
+def _curve_error_on_points(x, y, w, curve):
   """Squared error when using the curve to predict the points."""
-  pred_y = utils.eval_pwl_curve(x, curve_points, transform_fn)
-  return np.sum((y - pred_y)**2 * w)
+  return np.sum((y - curve.eval(x))**2 * w)
 
 
 class FitterTest(test_util.PWLFitTest):
 
   def test_mono_increasing_line(self):
     x = np.arange(51, dtype=float)
-    y = utils.eval_pwl_curve(x, [(0, -1), (50, 75)])
+    y = pwlcurve.PWLCurve([(0, -1), (50, 75)]).eval(x)
     w = np.ones_like(x)
     self.assert_allclose(y, pwl_predict(x, y, w, 1))
     self.assert_allclose(y, pwl_predict(x, y, w, 2))
 
   def test_mono_decreasing_line(self):
     x = np.arange(51, dtype=float)
-    y = utils.eval_pwl_curve(x, [(0, 75), (50, -1)])
+    y = pwlcurve.PWLCurve([(0, 75), (50, -1)]).eval(x)
     w = np.ones_like(x)
     self.assert_allclose(y, pwl_predict(x, y, w, 1))
     self.assert_allclose(y, pwl_predict(x, y, w, 2))
 
   def test_mono_decreasing_log1p_line(self):
     x = np.arange(51, dtype=float)
-    log1p_x = np.log1p(x)
-    y = utils.eval_pwl_curve(log1p_x, [(log1p_x[0], 75), (log1p_x[-1], -1)])
+    y = pwlcurve.PWLCurve([(x[0], 75), (x[-1], -1)], np.log1p).eval(x)
     w = np.ones_like(x)
     self.assert_allclose(y, pwl_predict(x, y, w, 1))
     self.assert_allclose(y, pwl_predict(x, y, w, 2))
 
   def test_simple_slope_restrictions(self):
     x = np.arange(51, dtype=float)
-    y = utils.eval_pwl_curve(x, [(0, 0), (50, 75)])
+    y = pwlcurve.PWLCurve([(0, 0), (50, 75)]).eval(x)
     w = np.ones_like(x)
 
     # The true slope is 1.5, which is compatible with any slope restrictions
@@ -81,7 +78,7 @@ class FitterTest(test_util.PWLFitTest):
 
   def test_mono_increasing_two_segment_pwl(self):
     x = np.arange(51, dtype=float)
-    y = utils.eval_pwl_curve(x, [(0, 0), (25, 25), (50, 60)])
+    y = pwlcurve.PWLCurve([(0, 0), (25, 25), (50, 60)]).eval(x)
     w = np.ones_like(x)
 
     self.assert_allclose(y, pwl_predict(x, y, w, 2))
@@ -90,7 +87,7 @@ class FitterTest(test_util.PWLFitTest):
 
   def test_mono_decreasing_two_segment_pwl(self):
     x = np.arange(51, dtype=float)
-    y = utils.eval_pwl_curve(x, [(0, 60), (25, 25), (50, 0)])
+    y = pwlcurve.PWLCurve([(0, 60), (25, 25), (50, 0)]).eval(x)
     w = np.ones_like(x)
 
     self.assert_allclose(y, pwl_predict(x, y, w, 2))
@@ -99,67 +96,64 @@ class FitterTest(test_util.PWLFitTest):
 
   def test_non_mono_two_segment_pwl(self):
     x = np.arange(51, dtype=float)
-    y = utils.eval_pwl_curve(x, [(0, 0), (25, 25), (50, 0)])
+    y = pwlcurve.PWLCurve([(0, 0), (25, 25), (50, 0)]).eval(x)
     w = np.ones_like(x)
 
     # Unfortunately, fitter will learn a log1p transform for this problem unless
     # we override transforms.
     self.assert_allclose(
-        y, pwl_predict(x, y, w, 2, mono=False, x_transform=transform.identity))
+        y, pwl_predict(x, y, w, 2, mono=False, fx=transform.identity))
     self.assert_allclose(
-        y, pwl_predict(x, y, w, 3, mono=False, x_transform=transform.identity))
+        y, pwl_predict(x, y, w, 3, mono=False, fx=transform.identity))
     self.assert_allclose(
-        y, pwl_predict(x, y, w, 4, mono=False, x_transform=transform.identity))
+        y, pwl_predict(x, y, w, 4, mono=False, fx=transform.identity))
 
     # Monotone curves can't fit this data closely.
     self.assert_notallclose(
-        y, pwl_predict(x, y, w, 2, mono=True, x_transform=transform.identity))
+        y, pwl_predict(x, y, w, 2, mono=True, fx=transform.identity))
 
   def test_non_mono_two_segment_log(self):
     exp_x = 1 + np.arange(51, dtype=float)
     x = np.log(exp_x)
-    y = utils.eval_pwl_curve(x, [(x[0], 0), (x[25], 25), (x[50], 0)])
+    y = pwlcurve.PWLCurve([(x[0], 0), (x[25], 25), (x[50], 0)]).eval(x)
     w = np.ones_like(x)
 
     # Piecewise-linear in log space.
-    self.assert_allclose(
-        y, pwl_predict(exp_x, y, w, 2, mono=False, x_transform=np.log))
-    self.assert_allclose(
-        y, pwl_predict(exp_x, y, w, 3, mono=False, x_transform=np.log))
-    self.assert_allclose(
-        y, pwl_predict(exp_x, y, w, 4, mono=False, x_transform=np.log))
+    self.assert_allclose(y, pwl_predict(exp_x, y, w, 2, mono=False, fx=np.log))
+    self.assert_allclose(y, pwl_predict(exp_x, y, w, 3, mono=False, fx=np.log))
+    self.assert_allclose(y, pwl_predict(exp_x, y, w, 4, mono=False, fx=np.log))
 
     # Monotone curves can't fit this data closely.
-    self.assert_notallclose(
-        y, pwl_predict(exp_x, y, w, 2, mono=True, x_transform=np.log))
+    self.assert_notallclose(y,
+                            pwl_predict(exp_x, y, w, 2, mono=True, fx=np.log))
 
   def test_mono_increasing_two_segment_pwl_with_flat_ends(self):
     x = np.arange(51, dtype=float)
-    y = utils.eval_pwl_curve(x, [(0, 0), (10, 0), (25, 15), (40, 50), (50, 50)])
+    y = pwlcurve.PWLCurve([(0, 0), (10, 0), (25, 15), (40, 50),
+                           (50, 50)]).eval(x)
     w = np.ones_like(x)
     # A two-segment PWLCurve can fit fn perfectly, but only if its knots are
     # [(10, 0), (25, 15), (40, 50)]. This test confirms that fit_pwl will
     # learn those knots.
-    curve, trans_fn = fitter.fit_pwl(x, y, w, 2)
-    self.assert_allclose([(10, 0), (25, 15), (40, 50)], curve)
-    self.assert_allclose(y, utils.eval_pwl_curve(x, curve, trans_fn))
-    self.assertEqual(trans_fn, transform.identity)
+    curve = fitter.fit_pwl(x, y, w, 2)
+    self.assert_allclose([(10, 0), (25, 15), (40, 50)], curve.points)
+    self.assert_allclose(y, curve.eval(x))
+    self.assertEqual(transform.identity, curve.fx)
 
   def test_non_mono_increasing_two_segment_pwl_with_flat_ends(self):
     x = np.arange(51, dtype=float)
-    y = utils.eval_pwl_curve(x, [(0, 0), (10, 0), (25, 15), (40, 0), (50, 0)])
+    y = pwlcurve.PWLCurve([(0, 0), (10, 0), (25, 15), (40, 0), (50, 0)]).eval(x)
     w = np.ones_like(x)
     # A two-segment PWLCurve can fit fn perfectly, but only if its knots are
     # [(10, 0), (25, 15), (40, 0)]. This test confirms that fit_pwl will learn
     # those knots.
-    curve, trans_fn = fitter.fit_pwl(
-        x, y, w, 2, mono=False, x_transform=transform.identity)
-    self.assert_allclose([(10, 0), (25, 15), (40, 0)], curve)
-    self.assert_allclose(y, utils.eval_pwl_curve(x, curve, trans_fn))
+    curve = fitter.fit_pwl(x, y, w, 2, mono=False, fx=transform.identity)
+    self.assert_allclose([(10, 0), (25, 15), (40, 0)], curve.points)
+    self.assert_allclose(y, curve.eval(x))
 
   def test_mono_increasing_three_segment_pwl(self):
     x = np.arange(51, dtype=float)
-    y = utils.eval_pwl_curve(x, [(0, 0), (10, 1), (25, 25), (50, 60)])
+    y = pwlcurve.PWLCurve([(0, 0), (10, 1), (25, 25), (50, 60)]).eval(x)
     w = np.ones_like(x)
 
     self.assert_allclose(y, pwl_predict(x, y, w, 3))
@@ -167,27 +161,28 @@ class FitterTest(test_util.PWLFitTest):
 
   def test_mono_decreasing_three_segment_pwl(self):
     x = np.arange(51, dtype=float)
-    y = utils.eval_pwl_curve(x, [(0, 60), (10, 25), (25, 1), (50, 0)])
+    y = pwlcurve.PWLCurve([(0, 60), (10, 25), (25, 1), (50, 0)]).eval(x)
     w = np.ones_like(x)
 
     self.assert_allclose(
-        y, pwl_predict(x, y, w, 3, mono=False, x_transform=transform.identity))
+        y, pwl_predict(x, y, w, 3, mono=False, fx=transform.identity))
     self.assert_allclose(
-        y, pwl_predict(x, y, w, 4, mono=False, x_transform=transform.identity))
+        y, pwl_predict(x, y, w, 4, mono=False, fx=transform.identity))
 
   def test_non_mono_three_segment_pwl(self):
     x = np.arange(51, dtype=float)
-    y = utils.eval_pwl_curve(x, [(0, 0), (10, 25), (25, 10), (50, 60)])
+    y = pwlcurve.PWLCurve([(0, 0), (10, 25), (25, 10), (50, 60)]).eval(x)
     w = np.ones_like(x)
 
     self.assert_allclose(
-        y, pwl_predict(x, y, w, 3, mono=False, x_transform=transform.identity))
+        y, pwl_predict(x, y, w, 3, mono=False, fx=transform.identity))
     self.assert_allclose(
-        y, pwl_predict(x, y, w, 4, mono=False, x_transform=transform.identity))
+        y, pwl_predict(x, y, w, 4, mono=False, fx=transform.identity))
 
   def test_mono_increasing_four_segment_pwl(self):
     x = np.arange(51, dtype=float)
-    y = utils.eval_pwl_curve(x, [(0, 0), (10, 1), (25, 25), (30, 59), (50, 60)])
+    y = pwlcurve.PWLCurve([(0, 0), (10, 1), (25, 25), (30, 59),
+                           (50, 60)]).eval(x)
     w = np.ones_like(x)
 
     self.assert_allclose(y, pwl_predict(x, y, w, 4))
@@ -195,7 +190,8 @@ class FitterTest(test_util.PWLFitTest):
 
   def test_mono_decreasing_four_segment_pwl(self):
     x = np.arange(51, dtype=float)
-    y = utils.eval_pwl_curve(x, [(0, 60), (10, 59), (25, 25), (30, 1), (50, 0)])
+    y = pwlcurve.PWLCurve([(0, 60), (10, 59), (25, 25), (30, 1),
+                           (50, 0)]).eval(x)
     w = np.ones_like(x)
 
     self.assert_allclose(y, pwl_predict(x, y, w, 4))
@@ -203,17 +199,18 @@ class FitterTest(test_util.PWLFitTest):
 
   def test_non_mono_four_segment_pwl(self):
     x = np.arange(51, dtype=float)
-    y = utils.eval_pwl_curve(x, [(0, 0), (10, 25), (26, 10), (35, 59), (50, 5)])
+    y = pwlcurve.PWLCurve([(0, 0), (10, 25), (26, 10), (35, 59),
+                           (50, 5)]).eval(x)
     w = np.ones_like(x)
 
     self.assert_allclose(
-        y, pwl_predict(x, y, w, 4, mono=False, x_transform=transform.identity))
+        y, pwl_predict(x, y, w, 4, mono=False, fx=transform.identity))
     self.assert_allclose(
-        y, pwl_predict(x, y, w, 5, mono=False, x_transform=transform.identity))
+        y, pwl_predict(x, y, w, 5, mono=False, fx=transform.identity))
 
   def test_fit_pwl_with_weights(self):
     x = np.array([0., 25., 50])
-    y = utils.eval_pwl_curve(x, [(0, 0), (25, 30), (50, 50)])
+    y = pwlcurve.PWLCurve([(0, 0), (25, 30), (50, 50)]).eval(x)
     w = np.array([1., 1., 2.])
 
     # The fit with weights tip up on low end but down on the high end.
@@ -282,7 +279,7 @@ class FitPWLPointsTest(test_util.PWLFitTest):
 
   def test_fit_pwl_points_non_mono_two_segment(self):
     x = np.arange(51, dtype=float)
-    y = utils.eval_pwl_curve(x, [(0, 0), (25, 25), (50, 0)])
+    y = pwlcurve.PWLCurve([(0, 0), (25, 25), (50, 0)]).eval(x)
     w = np.ones_like(x)
     curve_xs, curve_ys = fitter.fit_pwl_points(x, x, y, w, 2)
     self.assert_allclose(curve_xs, [0, 25, 50])
@@ -334,13 +331,13 @@ class FitPWLPointsTest(test_util.PWLFitTest):
     solver = fitter._WeightedLeastSquaresPWLSolver(x, y, w)
     knot_ys, reported_error = solver.solve(knots)
     points = list(zip(knots, knot_ys))
-    true_error = _curve_error_on_points(x, y, w, points)
+    true_error = _curve_error_on_points(x, y, w, pwlcurve.PWLCurve(points))
     self.assertAlmostEqual(true_error, reported_error)
 
     mono_solver = fitter._WeightedLeastSquaresPWLSolver(x, y, w, min_slope=0)
     knot_ys, reported_error = mono_solver.solve(knots)
     points = list(zip(knots, knot_ys))
-    true_error = _curve_error_on_points(x, y, w, points)
+    true_error = _curve_error_on_points(x, y, w, pwlcurve.PWLCurve(points))
     self.assertAlmostEqual(true_error, reported_error)
 
   def test_mono_down_equals_flipped_mono_up(self):
