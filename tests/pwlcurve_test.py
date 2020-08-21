@@ -97,38 +97,32 @@ class PWLCurveTest(test_util.PWLFitTest, parameterized.TestCase):
     self.assertEqual([(1.2346, 5.4), (1.2347, 6.5), (5.6789, 14)],
                      rounded_curve.points)
 
-  @parameterized.named_parameters(
-      (
-          'not too sensitive',
-          pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)]),
-          pwlcurve.PWLCurve(([1, 1], [2, 2])),
-          True,
-      ),
-      (
-          'not a PWLCurve',
-          pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)]),
-          's',
-          False,
-      ),
-      (
-          'different xs',
-          pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)]),
-          pwlcurve.PWLCurve([(10.0, 1.0), (20.0, 2.0)]),
-          False,
-      ),
-      (
-          'different ys',
-          pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)]),
-          pwlcurve.PWLCurve([(1.0, 10.0), (2.0, 20.0)]),
-          False,
-      ),
-      (
-          'different fx',
-          pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)]),
-          pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)], np.log),
-          False,
-      ),
-  )
+  @parameterized.named_parameters((
+      'not too sensitive',
+      pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)]),
+      pwlcurve.PWLCurve(([1, 1], [2, 2])),
+      True,
+  ), (
+      'not a PWLCurve',
+      pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)]),
+      's',
+      False,
+  ), (
+      'different xs',
+      pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)]),
+      pwlcurve.PWLCurve([(10.0, 1.0), (20.0, 2.0)]),
+      False,
+  ), (
+      'different ys',
+      pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)]),
+      pwlcurve.PWLCurve([(1.0, 10.0), (2.0, 20.0)]),
+      False,
+  ), (
+      'different fx',
+      pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)]),
+      pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)], np.log),
+      False,
+  ))
   def test_eq(self, c1, c2, expected):
     self.assertEqual(c1 == c2, expected)
 
@@ -140,10 +134,6 @@ class PWLCurveTest(test_util.PWLFitTest, parameterized.TestCase):
       'fx',
       pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)], np.log),
       'PWLCurve([(1, 1), (2, 2)], fx="log")',
-  ), (
-      'rounds',
-      pwlcurve.PWLCurve([(1.23456789, 1.23456789), (2.0, 2.0)]),
-      'PWLCurve([(1.235, 1.235), (2, 2)])',
   ))
   def test_str(self, curve, expected):
     self.assertEqual(str(curve), expected)
@@ -157,7 +147,11 @@ class PWLCurveTest(test_util.PWLFitTest, parameterized.TestCase):
       'PWLCurve([(1.0, 1.0), (2.0, 2.0)], fx="log")',
       np.log,
   ), (
-      'fx spaces flexible',
+      'spacing flexible',
+      'PWLCurve(  ([1, 1],   [2.0, 2.0])   )',
+      transform.identity,
+  ), (
+      'spacing flexible with fx',
       'PWLCurve([(1.0, 1.0), (2.0, 2.0)]  ,  fx="log")',
       np.log,
   ), (

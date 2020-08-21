@@ -72,14 +72,14 @@ class PWLCurve(object):
     utils.expect(
         s.startswith(prefix) and s.endswith(')'),
         'String must begin with "%s" and end with ")"' % prefix)
-    s = s[len(prefix):-1]
+    s = s[len(prefix) - 1:]
     idx = s.find('fx=')
     if idx < 0:
       return cls(ast.literal_eval(s))
-    fx_str = ast.literal_eval(s[idx + len('fx='):])
+    fx_str = ast.literal_eval(s[idx + len('fx='):-1])
     fx = cls.STR_TO_FX.get(fx_str)
     utils.expect(fx is not None, 'Invalid fx "%s" specified' % fx_str)
-    control_points = ast.literal_eval(s[:s.rfind(',')].rstrip())
+    control_points = ast.literal_eval(s[:s.rfind(',')] + ')')
     return cls(control_points, fx)
 
   @property
@@ -171,7 +171,7 @@ class PWLCurve(object):
 
   def __str__(self):
     points_str = '[%s]' % ', '.join(
-        '(%g, %g)' % (x, y) for (x, y) in self.round_to_sig_figs(4).points)
+        '(%g, %g)' % (x, y) for (x, y) in self.points)
     if self._fx is transform.identity:
       return 'PWLCurve(%s)' % points_str
     return 'PWLCurve(%s, fx="%s")' % (points_str, self._fx.__name__)
