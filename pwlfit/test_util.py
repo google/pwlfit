@@ -15,12 +15,13 @@
 
 """Testing helpers for pwlfit."""
 
-import unittest
+from absl.testing import absltest
 
 import numpy as np
 
 
-class PWLFitTest(unittest.TestCase):
+class PWLFitTest(absltest.TestCase):
+  """Testing class with convenience functions."""
 
   @classmethod
   def setUpClass(cls):

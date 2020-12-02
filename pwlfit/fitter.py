@@ -34,15 +34,15 @@ def fit_pwl(
     mono: bool = True,
     min_slope: Optional[float] = None,
     max_slope: Optional[float] = None,
-    fx: Optional[Callable[[np.ndarray],
-                          np.ndarray]] = None) -> pwlcurve.PWLCurve:
+    fx: Optional[Callable[[np.ndarray], np.ndarray]] = None,
+    learn_ends: bool = True) -> pwlcurve.PWLCurve:
   """Fits a PWLCurve from x to y, minimizing weighted MSE.
 
   Attempts to find a piecewise linear curve which is as close to ys as possible,
   in a least squares sense.
 
   ~O(len(x) + qlog(q) + (num_samples^2)(num_segments^3)) time complexity, where
-  q is q is ~min(10**6, len(x)). The len(x) term occurs because of downsampling
+  q is ~min(10**6, len(x)). The len(x) term occurs because of downsampling
   to q points. The qlog(q) term comes from sorting after downsampling. The other
   term comes from fit_pwl_points, which greedily searches for the best
   combination of knots and solves a constrained linear least squares expression
@@ -69,6 +69,10 @@ def fit_pwl(
       transform on x, to apply before piecewise-linear curve fitting. If None,
       fit_pwl chooses a transform using a heuristic. To specify fitting with no
       transform, pass in transform.identity.
+    learn_ends: (boolean) Whether to learn x-values for the curve's endpoints.
+      Learning endpoints allows for better-fitting curves with the same number
+      of segments. If False, fit_pwl forces the curve to use min(x) and max(x)
+      as knots, which constrains the solution space.
 
   Returns:
     The fit curve.
@@ -95,8 +99,9 @@ def fit_pwl(
     min_slope, max_slope = _get_mono_slope_bounds(y, w, min_slope, max_slope)
 
   # Fit a piecewise-linear curve in the transformed space.
+  required_knots = None if learn_ends else x_knots[[0, -1]]
   x_pnts, y_pnts = fit_pwl_points(x_knots, x, y, w, num_segments, min_slope,
-                                  max_slope)
+                                  max_slope, required_knots)
 
   # Recover the control point xs in the pre-transform space.
   x_pnts = original_x[trans_x.searchsorted(x_pnts)]
@@ -232,7 +237,8 @@ def fit_pwl_points(
     w: np.ndarray,
     num_segments: int,
     min_slope: Optional[float] = None,
-    max_slope: Optional[float] = None
+    max_slope: Optional[float] = None,
+    required_x_knots: Optional[Sequence[float]] = None
 ) -> Tuple[Sequence[float], Sequence[float]]:
   """Fits a num_segments segment PWL to the sample points.
 
@@ -249,6 +255,8 @@ def fit_pwl_points(
       0 for a monotone increasing solution, or None for no restriction.
     max_slope: (float) Maximum slope between each adjacent pair of knots. Set to
       0 for a monotone decreasing solution, or None for no restriction.
+    required_x_knots: (optional sequence of floats) X-values that must be used
+      for knots in the final curve.
 
   Returns:
     Returns two tuple (x_points, y_points) where x_points (y_points) is the list
@@ -257,28 +265,35 @@ def fit_pwl_points(
   utils.expect(len(x) == len(y) == len(w) >= 1)
   utils.expect(num_segments >= 1)
   utils.expect(min_slope is None or max_slope is None or min_slope <= max_slope)
+  required_x_knots = [] if required_x_knots is None else list(required_x_knots)
+  utils.expect(len(required_x_knots) <= num_segments + 1,
+               'Cannot require more than (num_segments + 1) knots.')
 
   if len(x_knots) == 1 or np.all(y == y[0]):  # Constant function.
     y_mean = np.average(y, weights=w)
     return [x[0] - 1, x[0]], [y_mean, y_mean]
 
   solver = _WeightedLeastSquaresPWLSolver(x, y, w, min_slope, max_slope)
-  return _fit_pwl_approx(x_knots, solver.solve, num_segments)
+  return _fit_pwl_approx(x_knots, solver.solve, num_segments, required_x_knots)
 
 
 def _fit_pwl_approx(
     x_knots: Sequence[float],
     solve_fn: Callable[[Sequence[float]], Tuple[np.ndarray, float]],
-    num_segments: int) -> Tuple[Sequence[float], Sequence[float]]:
+    num_segments: int,
+    required_x_knots: Optional[Sequence[float]] = None
+) -> Tuple[Sequence[float], Sequence[float]]:
   """Heuristic search for the best combination of knot xs and their y-values.
 
   Args:
-    x_knots (list of floats): Available values to choose knot xs from.
+    x_knots (sorted sequence of floats): Available values to choose as knot xs.
     solve_fn (function): Function that takes a list of chosen knots and returns
       the tuple (best y-values for those knots, error with those values).
       _fit_pwl_approx searches for the combination of knot xs that minimizes
       solve_fn's error.
     num_segments (int): Number of segments to fit.
+    required_x_knots: (optional sequence of floats) X-values that must be used
+      for knots in the final curve.
 
   Returns:
     Return a tuple (best_found_knot_xs, best_found_knot_ys), where the number of
@@ -293,35 +308,45 @@ def _fit_pwl_approx(
 
   def add_one_point(cur_knots):
     """Exhaustive search for the best new knot point."""
-    best_value, best_pnt, best_knot_values = np.inf, -1, None
+    best_error, best_pnt, best_knot_values = np.inf, -1, None
     for pnt in x_knots:
       if pnt not in cur_knots:
         sorted_pnts = tuple(sorted(cur_knots + [pnt]))
         if sorted_pnts not in solve_cache:
           solve_cache[sorted_pnts] = solve_fn(sorted_pnts)
-        knot_values, value = solve_cache[sorted_pnts]
-        if value <= best_value:
-          best_value, best_pnt, best_knot_values = value, pnt, knot_values
+        knot_values, error = solve_cache[sorted_pnts]
+        if error <= best_error:
+          best_error, best_pnt, best_knot_values = error, pnt, knot_values
 
-    assert best_value != np.inf
+    assert best_error != np.inf
     cur_knots = sorted(cur_knots + [best_pnt])
-    return cur_knots, list(best_knot_values), best_value
+    return cur_knots, list(best_knot_values), best_error
 
-  best_value, best_knots, best_knot_values = (np.inf, [x_knots[0]], [0])
-  for _ in range(num_segments):
-    best_knots, best_knot_values, best_value = add_one_point(best_knots)
+  # Start with the required knots if there are any, or the first knot if not.
+  required_x_knots = [] if required_x_knots is None else list(required_x_knots)
+  best_knots = sorted(required_x_knots) if required_x_knots else [x_knots[0]]
+
+  if len(best_knots) == 1:
+    best_error, best_knot_values = np.inf, [0]
+  else:
+    best_knot_values, best_error = solve_fn(best_knots)
+
+  for _ in range(num_segments + 1 - len(best_knots)):
+    best_knots, best_knot_values, best_error = add_one_point(best_knots)
 
   # Update each interior knot in the context of the other selected knots.
   for _ in range(10):
+    error = best_error
     knots = list(best_knots)
     for knot in knots:
-      best_knots.remove(knot)
-      best_knots, best_knot_values, value = add_one_point(best_knots)
+      if knot not in required_x_knots:
+        best_knots.remove(knot)
+        best_knots, best_knot_values, error = add_one_point(best_knots)
 
     # As long as there's an improvement in fit, keep iterating.
-    if value >= best_value:
+    if error >= best_error:
       break
-    best_value = value
+    best_error = error
 
   return best_knots, best_knot_values
 

@@ -76,6 +76,38 @@ class FitterTest(test_util.PWLFitTest):
     self.assert_notallclose(y, pwl_predict(x, y, w, 1, max_slope=1, mono=False))
     self.assert_notallclose(y, pwl_predict(x, y, w, 1, min_slope=2, mono=False))
 
+  def test_learn_ends_has_no_effect_when_endpoints_are_ideal(self):
+    # In this case, the ideal fit uses the endpoints, so no need to learn ends.
+    x = np.arange(51, dtype=float)
+    y = pwlcurve.PWLCurve([(0, 0), (10, 1), (25, 25), (50, 60)]).eval(x)
+    w = np.ones_like(x)
+
+    self.assertEqual(fitter.fit_pwl(x, y, w, 3, learn_ends=True),
+                     fitter.fit_pwl(x, y, w, 3, learn_ends=False))
+
+  def test_one_segment_pwl_with_flat_ends(self):
+    x = np.arange(51, dtype=float)
+    y = pwlcurve.PWLCurve([(0, 0), (10, 0), (40, 50), (50, 50)]).eval(x)
+    w = np.ones_like(x)
+    # A one-segment PWLCurve can fit fn perfectly, but only if its knots are
+    # [(10, 0), (40, 50)]. This test confirms that fit_pwl learns those knots.
+    curve = fitter.fit_pwl(x, y, w, 1)
+    self.assert_allclose([(10, 0), (40, 50)], curve.points)
+    self.assert_allclose(y, curve.eval(x))
+    self.assertEqual(transform.identity, curve.fx)
+
+  def test_one_segment_pwl_with_flat_ends_but_no_learning_ends(self):
+    x = np.arange(51, dtype=float)
+    y = pwlcurve.PWLCurve([(0, 0), (10, 0), (40, 50), (50, 50)]).eval(x)
+    w = np.ones_like(x)
+    # A one-segment PWLCurve can fit fn perfectly, but only if its knots are
+    # [(10, 0), (40, 50)]. In this test, we disable learn_ends, and show that
+    # the fitter can't learn the ideal fit because it's forced to use 0 and 50
+    # as control points.
+    curve = fitter.fit_pwl(x, y, w, 1, learn_ends=False)
+    self.assertEqual([0, 50], curve.xs)
+    self.assert_notallclose(y, curve.eval(x))
+
   def test_mono_increasing_two_segment_pwl(self):
     x = np.arange(51, dtype=float)
     y = pwlcurve.PWLCurve([(0, 0), (25, 25), (50, 60)]).eval(x)
@@ -140,7 +172,7 @@ class FitterTest(test_util.PWLFitTest):
     self.assert_allclose(y, curve.eval(x))
     self.assertEqual(transform.identity, curve.fx)
 
-  def test_non_mono_increasing_two_segment_pwl_with_flat_ends(self):
+  def test_non_mono_two_segment_pwl_with_flat_ends(self):
     x = np.arange(51, dtype=float)
     y = pwlcurve.PWLCurve([(0, 0), (10, 0), (25, 15), (40, 0), (50, 0)]).eval(x)
     w = np.ones_like(x)
@@ -150,6 +182,19 @@ class FitterTest(test_util.PWLFitTest):
     curve = fitter.fit_pwl(x, y, w, 2, mono=False, fx=transform.identity)
     self.assert_allclose([(10, 0), (25, 15), (40, 0)], curve.points)
     self.assert_allclose(y, curve.eval(x))
+
+  def test_non_mono_two_segment_pwl_with_flat_ends_but_no_learning_ends(self):
+    x = np.arange(51, dtype=float)
+    y = pwlcurve.PWLCurve([(0, 0), (10, 0), (25, 15), (40, 0), (50, 0)]).eval(x)
+    w = np.ones_like(x)
+    # A two-segment PWLCurve can fit fn perfectly, but only if its knots are
+    # [(10, 0), (25, 15), (40, 0)]. In this test, we disable learn_ends, and
+    # show that the fitter can't learn the ideal fit because it's forced to use
+    # 0 and 50 as control points.
+    curve = fitter.fit_pwl(
+        x, y, w, 2, mono=False, fx=transform.identity, learn_ends=False)
+    self.assertEqual([0, 25, 50], curve.xs)
+    self.assert_notallclose(y, curve.eval(x))
 
   def test_mono_increasing_three_segment_pwl(self):
     x = np.arange(51, dtype=float)
@@ -276,6 +321,60 @@ class FitPWLPointsTest(test_util.PWLFitTest):
     w = np.random.uniform(size=3)
     with self.assertRaises(ValueError):
       fitter.fit_pwl_points(x, x, y, w, 3, min_slope=1, max_slope=-1)
+
+  def test_fit_pwl_points_required_x_knots_appear_in_solution(self):
+    np.random.seed(48440)
+    x = np.sort(np.random.uniform(size=100))
+    y = -np.sort(np.random.normal(size=100))
+    w = np.random.uniform(size=100)
+
+    for num_required_x_knots in range(5):
+      required_x_knots = np.random.uniform(size=num_required_x_knots)
+      x_pnts, _ = fitter.fit_pwl_points(
+          x, x, y, w, 3, required_x_knots=required_x_knots)
+      self.assertContainsSubset(required_x_knots, x_pnts)
+
+  def test_fit_pwl_points_required_x_knots_handles_empty_cases(self):
+    np.random.seed(48440)
+    x = np.sort(np.random.uniform(size=100))
+    y = -np.sort(np.random.normal(size=100))
+    w = np.random.uniform(size=100)
+
+    self.assertEqual(
+        fitter.fit_pwl_points(x, x, y, w, 3),
+        fitter.fit_pwl_points(x, x, y, w, 3, required_x_knots=None))
+    self.assertEqual(
+        fitter.fit_pwl_points(x, x, y, w, 3),
+        fitter.fit_pwl_points(x, x, y, w, 3, required_x_knots=[]))
+    self.assertEqual(
+        fitter.fit_pwl_points(x, x, y, w, 3),
+        fitter.fit_pwl_points(x, x, y, w, 3, required_x_knots=np.array([])))
+
+  def test_fit_pwl_points_raises_when_requiring_too_many_x_knots(self):
+    np.random.seed(48440)
+    x = np.sort(np.random.uniform(size=100))
+    y = -np.sort(np.random.normal(size=100))
+    w = np.random.uniform(size=100)
+
+    # For 3 segments, we can require up to 4 knots.
+    fitter.fit_pwl_points(x, x, y, w, 3, required_x_knots=x[[0, 1, 2, 3]])
+    with self.assertRaises(ValueError):
+      fitter.fit_pwl_points(x, x, y, w, 3, required_x_knots=x[[0, 1, 2, 3, 4]])
+
+  def test_fit_pwl_points_required_x_knots(self):
+    x = np.arange(51, dtype=float)
+    y = pwlcurve.PWLCurve([(0, 0), (25, 25), (50, 0)]).eval(x)
+    w = np.ones_like(x)
+
+    # Optimal knots don't change the fit.
+    self.assertEqual(
+        fitter.fit_pwl_points(x, x, y, w, 2, required_x_knots=[0, 25]),
+        fitter.fit_pwl_points(x, x, y, w, 2))
+
+    # Suboptimal knots do change the fit.
+    self.assert_notallclose(
+        fitter.fit_pwl_points(x, x, y, w, 2, required_x_knots=[5]),
+        fitter.fit_pwl_points(x, x, y, w, 2))
 
   def test_fit_pwl_points_non_mono_two_segment(self):
     x = np.arange(51, dtype=float)
