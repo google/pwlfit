@@ -28,7 +28,7 @@ import scipy.stats
 identity_transform = transform.identity
 log_transform = np.log
 log1p_transform = np.log1p
-symmetriclog1p_transform = transform.symmetriclog1p
+symlog1p_transform = transform.symlog1p
 
 
 class FindBestTransformTest(test_util.PWLFitTest):
@@ -112,11 +112,11 @@ class FindBestTransformTest(test_util.PWLFitTest):
     xs = np.random.normal(size=100)
     self.assert_allclose(xs, transform.identity(xs))
 
-  def test_symmetriclog1p_matches_log1p(self):
+  def test_symlog1p_matches_log1p(self):
     np.random.seed(4)
     xs = np.abs(np.random.normal(size=100))
-    self.assert_allclose(np.log1p(xs), transform.symmetriclog1p(xs))
-    self.assert_allclose(-np.log1p(xs), transform.symmetriclog1p(-xs))
+    self.assert_allclose(np.log1p(xs), transform.symlog1p(xs))
+    self.assert_allclose(-np.log1p(xs), transform.symlog1p(-xs))
 
   def test_find_best_transform_is_identity_for_constant_xs(self):
     np.random.seed(5)
@@ -210,15 +210,15 @@ class FindBestTransformTest(test_util.PWLFitTest):
     found_transform = transform.find_best_transform(np.expm1(x), x, w)
     self.assertEqual(log1p_transform, found_transform)
 
-  def test_find_best_transform_symmetriclog1p_transform(self):
+  def test_find_best_transform_symlog1p_transform(self):
     np.random.seed(8)
-    # SymmetricLogP1 extends the log distribution to include negative values.
+    # symlog1p extends the log distribution to allow negative inputs.
     x = np.sort(np.random.uniform(low=-4, high=5, size=1000))
     w = np.random.uniform(size=1000)
-    y = transform.symmetriclog1p(x)
+    y = transform.symlog1p(x)
 
     found_transform = transform.find_best_transform(x, y, w)
-    self.assertEqual(symmetriclog1p_transform, found_transform)
+    self.assertEqual(symlog1p_transform, found_transform)
 
   def test_find_best_transform_clips_by_weight(self):
     # Generate data that's mostly linear but with a logarithmic tail.

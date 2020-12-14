@@ -30,7 +30,7 @@ class PWLCurve(object):
 
   STR_TO_FX = {
       fn.__name__: fn for fn in
-      [transform.identity, transform.symmetriclog1p, np.log, np.log1p]
+      [transform.identity, transform.symlog1p, np.log, np.log1p]
   }
 
   def __init__(self,

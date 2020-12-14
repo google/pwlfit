@@ -52,14 +52,14 @@ def weighted_pearson_correlation(x: np.ndarray, y: np.ndarray,
   return covxy / np.sqrt(covxx * covyy)
 
 
-def symmetriclog1p(x: np.ndarray) -> np.ndarray:
-  """An extension of log1p(x >= 0) to all real x.
+def symlog1p(x: np.ndarray) -> np.ndarray:
+  """A symmetric extension of log1p(x >= 0) to all real x.
 
   Args:
     x: (Numpy array of floats) Data to transform.
 
   Returns:
-    Numpy array of the symmetriclog1p of each entry in x.
+    Numpy array of the symlog1p of each entry in x.
   """
   return np.sign(x) * np.log1p(np.abs(x))
 
@@ -101,7 +101,7 @@ def find_best_transform(
     identity_bias: float = 1e-6) -> Callable[[np.ndarray], np.ndarray]:
   """Finds the best transformation to use for PWLCurve fitting.
 
-  Chooses between identity, log, logp1, and symmetriclogp1.
+  Chooses between identity, log, log1p, and symlog1p.
 
   Args:
     sorted_x: (Numpy array) Data to transform, in sorted order.
@@ -128,7 +128,7 @@ def find_best_transform(
   elif sorted_x[0] > -1:
     transform = np.log1p
   else:
-    transform = symmetriclog1p
+    transform = symlog1p
 
   # Use the Pearson correlation to find the transformation on which the data
   # looks the most linear.
