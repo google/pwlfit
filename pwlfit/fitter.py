@@ -15,6 +15,7 @@
 
 """Routines for approximating data with piecewise linear curves."""
 
+import enum
 from typing import Callable, Optional, Sequence, Tuple
 import numpy as np
 from pwlfit import isotonic
@@ -25,13 +26,22 @@ from pwlfit import utils
 import scipy.optimize
 
 
+class MonoType(enum.IntEnum):
+  """An enum for the varying types of fit_pwl restrictions."""
+  nonmono = 0               # Unrestricted.
+  mono = 1                  # Slope always >= 0 or always <= 0.
+  bitonic = 2               # Slope switches sign at most once.
+  bitonic_concave_down = 3  # Slope starts positive and switches to negative.
+  bitonic_concave_up = 4    # Slope starts negative and switches to positive.
+
+
 def fit_pwl(
     x: Sequence[float],
     y: Sequence[float],
     w: Optional[Sequence[float]] = None,
     num_segments: int = 3,
     num_samples: int = 100,
-    mono: bool = True,
+    mono: MonoType = MonoType.mono,
     min_slope: Optional[float] = None,
     max_slope: Optional[float] = None,
     fx: Optional[Callable[[np.ndarray], np.ndarray]] = None,
@@ -58,16 +68,15 @@ def fit_pwl(
       the PWL curve. More samples improves fit quality, but slows fitting. At
       100 samples, fit_pwl runs in 1-2 seconds. At 1000 samples, it runs in
       under a minute. At 10,000 samples, expect an hour.
-    mono: (boolean) Whether to require a monotone solution. fit_pwl will
-      determine whether to prefer a mono-up solution or a mono-down solution,
-      unless min_slope or max_slope force a direction.
+    mono: (MonoType enum) Restrictions to apply in curve fitting, with
+      monotonicity as the default. See MonoType for all options.
     min_slope: (None or float) Minimum slope between each adjacent pair of
       knots. Set to 0 for a monotone increasing solution.
     max_slope: (None or float) Maximum slope between each adjacent pair of
       knots. Set to 0 for a monotone decreasing solution.
-    fx: (None or a strictly increasing 1D function): User-specified
-      transform on x, to apply before piecewise-linear curve fitting. If None,
-      fit_pwl chooses a transform using a heuristic. To specify fitting with no
+    fx: (None or a strictly increasing 1D function) User-specified transform on
+      x, to apply before piecewise-linear curve fitting. If None, fit_pwl
+      chooses a transform using a heuristic. To specify fitting with no
       transform, pass in transform.identity.
     learn_ends: (boolean) Whether to learn x-values for the curve's endpoints.
       Learning endpoints allows for better-fitting curves with the same number
@@ -95,13 +104,17 @@ def fit_pwl(
   x_knots, x, y, w = (
       linear_condense.sample_condense_points(trans_x, y, w, num_samples))
 
-  if mono:
+  if mono == MonoType.mono:
     min_slope, max_slope = _get_mono_slope_bounds(y, w, min_slope, max_slope)
+
+  bitonic_peak, bitonic_concave_down = _bitonic_peak_and_direction(
+      x, y, w, mono)
 
   # Fit a piecewise-linear curve in the transformed space.
   required_knots = None if learn_ends else x_knots[[0, -1]]
   x_pnts, y_pnts = fit_pwl_points(x_knots, x, y, w, num_segments, min_slope,
-                                  max_slope, required_knots)
+                                  max_slope, bitonic_peak, bitonic_concave_down,
+                                  required_knots)
 
   # Recover the control point xs in the pre-transform space.
   x_pnts = original_x[trans_x.searchsorted(x_pnts)]
@@ -230,6 +243,37 @@ def _is_increasing(y: Sequence[float], w: Sequence[float]) -> bool:
   return increasing_norm <= decreasing_norm
 
 
+def _bitonic_peak_and_error(x: Sequence[float], y: Sequence[float],
+                            w: Sequence[float]) -> Tuple[float, float]:
+  """Returns the bitonic peak's x-value, and the error of bitonic regression."""
+  peak_index, error = isotonic.bitonic_peak_and_error(y, w)
+  return x[peak_index], error
+
+
+def _bitonic_peak_and_direction(
+    x: np.ndarray, y: np.ndarray, w: np.ndarray,
+    mono: MonoType) -> Tuple[Optional[float], Optional[bool]]:
+  """Returns the bitonic peak's x-value, and the bitonic direction."""
+
+  if mono == MonoType.bitonic:  # Pick the direction minimizing error.
+    concave_peak, concave_error = _bitonic_peak_and_error(x, y, w)
+    convex_peak, convex_error = _bitonic_peak_and_error(x, -y, w)
+    if concave_error <= convex_error:
+      return concave_peak, True
+    return convex_peak, False
+
+  if mono == MonoType.bitonic_concave_down:  # Find the concave-down peak.
+    concave_peak, _ = _bitonic_peak_and_error(x, y, w)
+    return concave_peak, True
+
+  if mono == MonoType.bitonic_concave_up:  # Find the concave-up (convex) peak.
+    convex_peak, _ = _bitonic_peak_and_error(x, -y, w)
+    return convex_peak, False
+
+  # Else, 'mono' isn't a bitonic type, so there isn't a bitonic peak/direction.
+  return None, None
+
+
 def fit_pwl_points(
     x_knots: np.ndarray,
     x: np.ndarray,
@@ -238,6 +282,8 @@ def fit_pwl_points(
     num_segments: int,
     min_slope: Optional[float] = None,
     max_slope: Optional[float] = None,
+    bitonic_peak: Optional[float] = None,
+    bitonic_concave_down: Optional[bool] = None,
     required_x_knots: Optional[Sequence[float]] = None
 ) -> Tuple[Sequence[float], Sequence[float]]:
   """Fits a num_segments segment PWL to the sample points.
@@ -255,6 +301,10 @@ def fit_pwl_points(
       0 for a monotone increasing solution, or None for no restriction.
     max_slope: (float) Maximum slope between each adjacent pair of knots. Set to
       0 for a monotone decreasing solution, or None for no restriction.
+    bitonic_peak: The x-value at which the bitonic slope changes direction. If
+      None, bitonic restrictions are not applied.
+    bitonic_concave_down: The direction of bitonic fitting. Used only when
+      bitonic_peak is not None.
     required_x_knots: (optional sequence of floats) X-values that must be used
       for knots in the final curve.
 
@@ -273,7 +323,8 @@ def fit_pwl_points(
     y_mean = np.average(y, weights=w)
     return [x[0] - 1, x[0]], [y_mean, y_mean]
 
-  solver = _WeightedLeastSquaresPWLSolver(x, y, w, min_slope, max_slope)
+  solver = _WeightedLeastSquaresPWLSolver(
+      x, y, w, min_slope, max_slope, bitonic_peak, bitonic_concave_down)
   return _fit_pwl_approx(x_knots, solver.solve, num_segments, required_x_knots)
 
 
@@ -418,7 +469,9 @@ class _WeightedLeastSquaresPWLSolver(object):
                y: np.ndarray,
                w: np.ndarray,
                min_slope: Optional[float] = None,
-               max_slope: Optional[float] = None):
+               max_slope: Optional[float] = None,
+               bitonic_peak: Optional[float] = None,
+               bitonic_concave_down: Optional[bool] = None):
     """Constructor.
 
     Args:
@@ -431,11 +484,23 @@ class _WeightedLeastSquaresPWLSolver(object):
         of knots. Set to 0 to impose a monotone increasing solution.
       max_slope: float indicating the maximum slope between each adjacent pair
         of knots. Set to 0 to impose a monotone decreasing solution.
+      bitonic_peak: float indicating the x-value at which the bitonic slope
+        changes direction. If None, bitonic restrictions are not applied.
+      bitonic_concave_down: bool indicating the direction of bitonic fitting.
+        Used only when bitonic_peak is not None.
     """
     utils.expect(len(x) == len(y) == len(w) >= 1)
     utils.expect((w >= 0).all(), 'weights cannot be negative.')
     utils.expect(min_slope is None or max_slope is None or
                  min_slope <= max_slope)
+    utils.expect(
+        (bitonic_peak is None and bitonic_concave_down is None) or
+        (bitonic_peak is not None and bitonic_concave_down is not None),
+        'bitonic solver requires both bitonic_peak and bitonic_concave_down.')
+    utils.expect(bitonic_peak is None or (min_slope is None or min_slope < 0),
+                 'cannot learn bitonic solution when min_slope >= 0')
+    utils.expect(bitonic_peak is None or (max_slope is None or max_slope > 0),
+                 'cannot learn bitonic solution when max_slope <= 0')
 
     sqrt_w = np.sqrt(w, dtype=float)
     self._sqrt_w = sqrt_w.reshape(len(w), 1)
@@ -443,6 +508,11 @@ class _WeightedLeastSquaresPWLSolver(object):
     self._x = np.array(x, dtype=float, copy=False)
     self._min_slope = min_slope
     self._max_slope = max_slope
+    self._bitonic_peak = bitonic_peak
+    self._bitonic_concave_down = bitonic_concave_down
+    self._is_unconstrained = (self._min_slope is None and
+                              self._max_slope is None and
+                              self._bitonic_peak is None)
 
   def _get_weighted_matrix(self, knot_xs: Sequence[float]) -> np.ndarray:
     """Computes the matrix 'A' in ||b - Av||^2, weighted by _weight_matrix.
@@ -501,18 +571,38 @@ class _WeightedLeastSquaresPWLSolver(object):
     knot_xs = np.array(knot_xs, copy=False)
     delta_knot_xs = knot_xs[1:] - knot_xs[:-1]
 
+    upper_bounds = np.full_like(knot_xs, np.inf)
+    lower_bounds = -upper_bounds
     # The first y is a bias, not a delta, so it's never constrained.
     # Each delta_y satisfies min_slope <= delta_y / delta_x <= max_slope.
     if self._min_slope is not None:
-      lower_bounds = [-np.inf] + list(self._min_slope * delta_knot_xs)
-    else:
-      lower_bounds = [-np.inf] * len(knot_xs)  # No lower bound.
+      lower_bounds[1:] = self._min_slope * delta_knot_xs
     if self._max_slope is not None:
-      upper_bounds = [np.inf] + list(self._max_slope * delta_knot_xs)
-    else:
-      upper_bounds = [np.inf] * len(knot_xs)  # No upper bound.
+      upper_bounds[1:] = self._max_slope * delta_knot_xs
+
+    if self._bitonic_peak is not None:
+      bitonic_lower, bitonic_upper = self._get_bitonic_bounds(knot_xs)
+      lower_bounds = np.maximum(lower_bounds, bitonic_lower)
+      upper_bounds = np.minimum(upper_bounds, bitonic_upper)
 
     return lower_bounds, upper_bounds
+
+  def _get_bitonic_bounds(
+      self, knot_xs: np.ndarray) -> Tuple[Sequence[float], Sequence[float]]:
+    """Computes the upper and lower bounds caused by bitonicity."""
+    peak_index = knot_xs.searchsorted(self._bitonic_peak)
+    upper_bound = np.full_like(knot_xs, np.inf)
+    lower_bound = -upper_bound
+
+    # The knot at peak_index is unrestricted.
+    if self._bitonic_concave_down:
+      lower_bound[1:peak_index] = 0
+      upper_bound[peak_index+1:] = 0
+    else:
+      upper_bound[1:peak_index] = 0
+      lower_bound[peak_index+1:] = 0
+
+    return lower_bound, upper_bound
 
   def solve(self, knot_xs: Sequence[float]) -> Tuple[np.ndarray, float]:
     """Computes the weighted least squares PWL knot ys for the given knot xs.
@@ -531,7 +621,7 @@ class _WeightedLeastSquaresPWLSolver(object):
     weighted_matrix = self._get_weighted_matrix(knot_xs)
 
     # When unconstrained, use unconstrained linear least squares via numpy.
-    if self._min_slope is None and self._max_slope is None:
+    if self._is_unconstrained:
       solution = np.linalg.lstsq(weighted_matrix, self._weighted_y, rcond=None)
       knot_ys = np.cumsum(solution[0])
       if solution[1].size == 0:
@@ -543,7 +633,7 @@ class _WeightedLeastSquaresPWLSolver(object):
 
       return knot_ys, squared_error
 
-    # Bounded linear least squares via scipy.
+    # Monotone/bitonic solving uses bounded linear least squares via scipy.
     solution = scipy.optimize.lsq_linear(
         weighted_matrix,
         self._weighted_y,

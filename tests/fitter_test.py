@@ -35,7 +35,34 @@ def _curve_error_on_points(x, y, w, curve):
   return np.sum((y - curve.eval(x))**2 * w)
 
 
+def count_slope_inversions(ys):
+  """Count how many times the slope changes sign."""
+  num_inversions = 0
+  for a, b, c in zip(ys[:-2], ys[1:-1], ys[2:]):
+    if (b - a) * (c - b) < 0:
+      num_inversions += 1
+  return num_inversions
+
+
 class FitterTest(test_util.PWLFitTest):
+
+  def test_mono_type_enum_and_bool(self):
+    np.random.seed(48440)
+    x = np.sort(np.random.uniform(size=100))
+    y = np.random.normal(size=100)
+    w = np.random.uniform(size=100)
+    # fit_pwl treats mono=True as synonymous to mono=MonoType.mono.
+    self.assertEqual(fitter.fit_pwl(x, y, w, 2, mono=True),
+                     fitter.fit_pwl(x, y, w, 2, mono=fitter.MonoType.mono))
+    self.assertNotEqual(
+        fitter.fit_pwl(x, y, w, 2, mono=True),
+        fitter.fit_pwl(x, y, w, 2, mono=fitter.MonoType.nonmono))
+
+    # fit_pwl treats mono=False as synonymous to mono=MonoType.nonmono.
+    self.assertEqual(fitter.fit_pwl(x, y, w, 2, mono=False),
+                     fitter.fit_pwl(x, y, w, 2, mono=fitter.MonoType.nonmono))
+    self.assertNotEqual(fitter.fit_pwl(x, y, w, 2, mono=False),
+                        fitter.fit_pwl(x, y, w, 2, mono=fitter.MonoType.mono))
 
   def test_mono_increasing_line(self):
     x = np.arange(51, dtype=float)
@@ -273,6 +300,70 @@ class FitterTest(test_util.PWLFitTest):
     y = x * 5
     w = np.ones_like(x)
     self.assert_allclose(y, pwl_predict(x, y, w, 1))
+
+  def test_fit_pwl_with_four_segment_unimodal(self):
+    x = np.arange(51, dtype=float) / 10
+    y = pwlcurve.PWLCurve([(0, 0), (1, 2), (2, 5), (3, 2), (4, 0)]).eval(x)
+
+    self.assert_allclose(y, pwl_predict(
+        x, y, num_segments=4, fx=transform.identity,
+        mono=fitter.MonoType.bitonic))
+
+  def test_fit_pwl_with_four_segment_unimodal_with_slope_restrictions(self):
+    x = np.arange(51, dtype=float) / 10
+    y = pwlcurve.PWLCurve([(0, 0), (1, 2), (2, 5), (3, 2), (4, 0)]).eval(x)
+
+    # -3 <= true_slope <= 3. FitUnimodalPWL can find the ideal fit unless we
+    # require a min_slope > -3 or a max_slope < 3.
+    self.assert_allclose(y, pwl_predict(
+        x, y, num_segments=4, fx=transform.identity,
+        mono=fitter.MonoType.bitonic, min_slope=-3, max_slope=3))
+
+    # Min slope is too large for a perfect fit.
+    self.assert_notallclose(y, pwl_predict(
+        x, y, num_segments=4, fx=transform.identity,
+        mono=fitter.MonoType.bitonic, min_slope=-2))
+    # Max slope is too small for a perfect fit.
+    self.assert_notallclose(y, pwl_predict(
+        x, y, num_segments=4, fx=transform.identity,
+        mono=fitter.MonoType.bitonic, max_slope=2))
+
+  def test_fit_pwl_unimodal_on_non_unimodal_data(self):
+    x = np.arange(51, dtype=float) / 10
+    y = pwlcurve.PWLCurve([(0, 0), (1, 2), (2, 0), (3, 2), (4, 0)]).eval(x)
+
+    curve = fitter.fit_pwl(x, y, num_segments=4, fx=transform.identity,
+                           mono=fitter.MonoType.bitonic)
+
+    # An unrestricted fit should change directions three times, but a unimodal
+    # curve will only change once.
+    self.assertEqual(1, count_slope_inversions(curve.ys))
+
+    # Should be concave down -- increasing at first, decreasing at the end.
+    self.assertLess(curve.ys[0], curve.ys[1])
+    self.assertLess(curve.ys[-1], curve.ys[-2])
+
+  def test_fit_pwl_unimodal_with_forced_direction(self):
+    x = np.arange(51, dtype=float) / 10
+    y = pwlcurve.PWLCurve([(0, 0), (1, 2), (2, 5), (3, 2), (4, 0)]).eval(x)
+
+    # y is concave down, so a concave solution is ideal.
+    concave_curve = fitter.fit_pwl(x, y, num_segments=4, fx=transform.identity,
+                                   mono=fitter.MonoType.bitonic_concave_down)
+    convex_curve = fitter.fit_pwl(x, y, num_segments=4, fx=transform.identity,
+                                  mono=fitter.MonoType.bitonic_concave_up)
+
+    self.assert_allclose(y, concave_curve.eval(x))
+    self.assert_notallclose(y, convex_curve.eval(x))
+
+    # -y is concave up, so a convex solution is ideal.
+    concave_curve = fitter.fit_pwl(x, -y, num_segments=4, fx=transform.identity,
+                                   mono=fitter.MonoType.bitonic_concave_down)
+    convex_curve = fitter.fit_pwl(x, -y, num_segments=4, fx=transform.identity,
+                                  mono=fitter.MonoType.bitonic_concave_up)
+
+    self.assert_allclose(-y, convex_curve.eval(x))
+    self.assert_notallclose(-y, concave_curve.eval(x))
 
 
 class FitPWLPointsTest(test_util.PWLFitTest):
@@ -525,6 +616,55 @@ class FitPWLPointsTest(test_util.PWLFitTest):
     non_mono_y, non_mono_error = non_mono_solver.solve(knots)
     np.testing.assert_array_equal(non_mono_y, mono_up_y)
     self.assertAlmostEqual(mono_up_error, non_mono_error)
+
+  def test_bitonic_solver_same_as_non_mono_for_bitonic_task(self):
+    # The bitonic restriction shouldn't matter if the natural fit is bitonic.
+    np.random.seed(58444)
+    x = np.sort(np.random.uniform(size=100))
+    y = (0.6 - x)**2  # y is a concave-up parabole with its minimum at x=0.6.
+    w = np.random.uniform(size=100)
+    knots = [.2, .5, .7, .9]
+
+    concave_up_solver = fitter._WeightedLeastSquaresPWLSolver(
+        x, y, w, bitonic_peak=0.6, bitonic_concave_down=False)
+    non_mono_solver = fitter._WeightedLeastSquaresPWLSolver(x, y, w)
+
+    concave_up_y, concave_up_error = concave_up_solver.solve(knots)
+    non_mono_y, non_mono_error = non_mono_solver.solve(knots)
+
+    # The problem is bitonic concave up, so the concave up solution matches the
+    # non-mono.
+    np.testing.assert_array_equal(non_mono_y, concave_up_y)
+    self.assertAlmostEqual(concave_up_error, non_mono_error)
+
+  def test_bitonic_solver_suffers_when_peak_or_direction_is_wrong(self):
+    np.random.seed(58444)
+    x = np.sort(np.random.uniform(size=100))
+    y = (0.5 - x)**2  # y is a concave-up parabole with its minimum at x=0.6.
+    w = np.random.uniform(size=100)
+    knots = [.1, .3, .5, .7, .9]
+
+    non_mono_solver = fitter._WeightedLeastSquaresPWLSolver(x, y, w)
+    concave_down_solver = fitter._WeightedLeastSquaresPWLSolver(
+        x, y, w, bitonic_peak=0.5, bitonic_concave_down=True)
+    peak_too_low_solver = fitter._WeightedLeastSquaresPWLSolver(
+        x, y, w, bitonic_peak=0.2, bitonic_concave_down=False)
+    peak_too_high_solver = fitter._WeightedLeastSquaresPWLSolver(
+        x, y, w, bitonic_peak=0.8, bitonic_concave_down=False)
+
+    non_mono_y, non_mono_error = non_mono_solver.solve(knots)
+    concave_down_y, concave_down_error = concave_down_solver.solve(knots)
+    peak_too_low_y, peak_too_low_error = peak_too_low_solver.solve(knots)
+    peak_too_high_y, peak_too_high_error = peak_too_high_solver.solve(knots)
+
+    # The bitonic restrictions prevent us from learning the good solution.
+    self.assert_notallclose(non_mono_y, concave_down_y)
+    self.assert_notallclose(non_mono_y, peak_too_low_y)
+    self.assert_notallclose(non_mono_y, peak_too_high_y)
+
+    self.assertNotAlmostEqual(concave_down_error, non_mono_error)
+    self.assertNotAlmostEqual(peak_too_low_error, non_mono_error)
+    self.assertNotAlmostEqual(peak_too_high_error, non_mono_error)
 
   def test_solver_squared_error_in_the_underdetermined_case(self):
     x = [0., 4., 5.]
