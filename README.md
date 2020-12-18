@@ -20,10 +20,9 @@ ys = 3 * np.power(xs - 1, 2) + xs - 1
 ys += np.random.normal(scale=3, size=len(xs))
 
 # Fit and evaluate.
-points, transform = fitter.fit_pwl(xs, ys, num_segments=2)
-print('control points: ', points)
-predicted_ys = utils.eval_pwl_curve(xs, points, transform)
-print('MSE: ', np.sum((ys - predicted_ys) **2.0) / len(ys))
+curve = fitter.fit_pwl(xs, ys, num_segments=2)
+print(curve)
+print('MSE: ', np.sum((ys - curve.eval(xs)) **2.0) / len(ys))
 ```
 
 ![Example](./plots/example_1.png)
@@ -33,8 +32,7 @@ print('MSE: ', np.sum((ys - predicted_ys) **2.0) / len(ys))
 ```python
 xs = np.arange(100)
 ys = np.concatenate((np.arange(50), np.arange(50, 0, -1)))
-points, transform = fitter.fit_pwl(xs, ys, num_segments=2, mono=False)
-print('control points: ', points)
-predicted_ys = utils.eval_pwl_curve(xs, points, transform)
-print('MSE: ', np.sum((ys - predicted_ys) **2.0) / len(ys))
+curve = fitter.fit_pwl(xs, ys, num_segments=2, mono=False)
+print(curve)
+print('MSE: ', np.sum((ys - curve.eval(xs)) **2.0) / len(ys))
 ```
