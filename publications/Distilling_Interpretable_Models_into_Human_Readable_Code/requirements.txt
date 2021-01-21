@@ -1,0 +1,11 @@
+setuptools
+wheel
+numpy
+scipy
+scikit-learn
+absl-py
+pandas
+matplotlib
+pwlf
+jupyter
+pyarrow
