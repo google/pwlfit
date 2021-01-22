@@ -13,6 +13,7 @@
 # limitations under the License.
 """Helper utilities to be used in pwlfit-related notebooks."""
 import abc
+import collections
 import re
 import timeit
 from typing import Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
@@ -96,7 +97,10 @@ class EnumCurveModel(Model):
         count=len(data))
 
   def expr(self) -> str:
-    return 'EnumCurve("%s", %s)' % (self._feature_name, self._mapping)
+    entries = ', '.join([
+        '%r: %r' % (k, self._mapping[k]) for k in sorted(self._mapping.keys())
+    ])
+    return 'EnumCurve("%s", {%s})' % (self._feature_name, entries)
 
   @classmethod
   def from_expr(cls, expr: str) -> 'EnumCurveModel':
@@ -199,7 +203,10 @@ class AdditiveModel(Model):
     utils.expect(
         len(set(model.feature_name for model in submodels)) == len(submodels),
         'Duplicate submodels for some features')
-    self._submodels = {model.feature_name: model for model in submodels}
+    self._submodels = collections.OrderedDict([
+        (model.feature_name, model)
+        for model in sorted(submodels, key=lambda m: m.feature_name)
+    ])
     super(AdditiveModel, self).__init__()
 
   def __eq__(self, o):

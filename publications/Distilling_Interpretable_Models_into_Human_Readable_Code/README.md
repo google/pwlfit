@@ -1,5 +1,5 @@
 # About
-This directory contains reference Jupyter notebooks and utility code for the "Distilling Interpretable Models into Human-Readable Code" paper.
+This directory contains reference Jupyter notebooks and utility code for the ["Distilling Interpretable Models into Human-Readable Code"](https://arxiv.org/abs/2101.08393) paper.
 A release has been created for each version of the paper with the code and notebook state at that time.
 Please reference the appropriate release and its accompanying datafiles for reproducibility.
 After downloading the release you can follow the instruction below to run the notebooks.
