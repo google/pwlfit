@@ -13,7 +13,7 @@
 # limitations under the License.
 """Classes and helpers for representing curves."""
 import ast
-from typing import Callable, List, Sequence, Tuple
+from typing import Callable, List, Optional, Sequence, Tuple
 import numpy as np
 from pwlfit import transform
 from pwlfit import utils
@@ -134,7 +134,7 @@ class PWLCurve(object):
 
   def round_to_sig_figs(self,
                         xfigures: int,
-                        yfigures: int = None) -> 'PWLCurve':
+                        yfigures: Optional[int] = None) -> 'PWLCurve':
     """Returns a new PWLCurve rounded to specified significant figures.
 
     A valid curve can't have duplicate control point xs. If the rounded curve

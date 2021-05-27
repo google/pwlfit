@@ -15,13 +15,13 @@
 
 """Isotonic regression via pool adjacent violators."""
 
-from typing import Sequence, Tuple
+from typing import Optional, Sequence, Tuple
 import numpy as np
 from pwlfit import utils
 
 
 def isotonic_regression(sequence: Sequence[float],
-                        weights: Sequence[float] = None,
+                        weights: Optional[Sequence[float]] = None,
                         increasing: bool = True) -> np.ndarray:
   """Returns a monotonic sequence which most closely approximates sequence.
 
