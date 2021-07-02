@@ -113,6 +113,11 @@ class PWLCurveModelTest(test_util.PWLFitTest, parameterized.TestCase):
   def test_eq(self, m1, m2, expected):
     self.assertEqual(expected, m1 == m2)
 
+  def test_str_for_fx(self):
+    self.assertEqual(
+        model_util.PWLCurveModel('x', [(1, 10.0), (2, 20.0)], np.log),
+        model_util.PWLCurveModel('x', [(1, 10.0), (2, 20.0)], 'log'))
+
   def test_eval(self):
     model = model_util.PWLCurveModel('x', [(1, 10.0), (2, 20.0)])
     self.assert_allclose(np.array([10.0, 15.0, 20.0]), model.eval([1, 1.5, 2]))

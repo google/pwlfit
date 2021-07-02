@@ -116,9 +116,11 @@ class PWLCurveModel(Model):
   def __init__(self,
                feature_name: str,
                control_points: Sequence[Tuple[float, float]],
-               fx: Callable[[Sequence[float]],
-                            Sequence[float]] = transform.identity):
+               fx: Union[Callable[[Sequence[float]], Sequence[float]],
+                         str] = transform.identity):
     self._feature_name = feature_name
+    if isinstance(fx, str):
+      fx = pwlcurve.PWLCurve.STR_TO_FX[fx]
     self._curve = pwlcurve.PWLCurve(control_points, fx)
     super(PWLCurveModel, self).__init__()
 
@@ -150,15 +152,8 @@ class PWLCurveModel(Model):
   def from_expr(cls, expr: str) -> 'PWLCurveModel':
     """Parse model from expression string."""
     my_locals = {}
-    exec('res = ' + expr, {'PWLCurve': _make_pwl_curve_model}, my_locals)  # pylint: disable=exec-used for illustration only
+    exec('res = ' + expr, {'PWLCurve': PWLCurveModel}, my_locals)  # pylint: disable=exec-used for illustration only
     return my_locals['res']
-
-
-def _make_pwl_curve_model(feature_name: str,
-                          control_points: Sequence[Tuple[float, float]],
-                          fx: str = 'identity') -> PWLCurveModel:
-  return PWLCurveModel(feature_name, control_points,
-                       pwlcurve.PWLCurve.STR_TO_FX[fx])
 
 
 class ColumnModel(Model):
@@ -239,7 +234,7 @@ class AdditiveModel(Model):
     exec(  # pylint: disable=exec-used for illustration only
         expr, {
             'sum': lambda x: x,
-            'PWLCurve': _make_pwl_curve_model,
+            'PWLCurve': PWLCurveModel,
             'EnumCurve': EnumCurveModel,
             'Column': ColumnModel
         }, my_locals)
