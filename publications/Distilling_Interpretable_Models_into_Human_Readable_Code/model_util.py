@@ -300,36 +300,37 @@ def _plot_enumcurve_fit(ax, df: pd.DataFrame, feature_name: str,
       float, len(sorted_xs))
   width = 0.5
   ax.scatter(
-      sorted_xs,
+      sorted_indicies,
       original_model.eval(df.iloc[unique_indicies, :])[sorted_indicies],
       marker='o',
       color=colors[0])
   ax.hlines(
       curve_model.eval(sorted_xs),
-      sorted_xs - width,
-      sorted_xs + width,
+      sorted_indicies - width,
+      sorted_indicies + width,
       color=colors[1])
-  ax.set_xticks(sorted_xs)
+  ax.set_xticks(sorted_indicies)
   ax.set_xlabel(feature_name)
   ax2 = ax.twinx()
   ax2.grid(False)
   cdf = np.cumsum(freq)
   ax2.vlines(
-      sorted_xs,
+      sorted_indicies,
       np.concatenate(([0], cdf[:-1])),
       cdf,
       color='gray',
       linestyles='dashed',
       zorder=1)
-  ax2.hlines(cdf[:-1], sorted_xs[:-1], sorted_xs[1:], color='gray', zorder=1)
+  ax2.hlines(cdf[:-1], sorted_indicies[:-1], sorted_indicies[1:],
+             color='gray', zorder=1)
   ax2.scatter(
-      sorted_xs[1:],
+      sorted_indicies[1:],
       cdf[:-1],
       marker='o',
       color='white',
       edgecolor='gray',
       zorder=2)
-  ax2.scatter(sorted_xs, cdf, marker='o', color='gray', zorder=2)
+  ax2.scatter(sorted_indicies, cdf, marker='o', color='gray', zorder=2)
   ax2.set_ybound(-0.05, 1.05)
   plt.close(ax.figure)
   return ax, ax2
