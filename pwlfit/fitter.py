@@ -16,7 +16,7 @@
 """Routines for approximating data with piecewise linear curves."""
 
 import enum
-from typing import Callable, Optional, Sequence, Tuple
+from typing import Callable, Optional, Sequence, Tuple, Union
 import numpy as np
 from pwlfit import isotonic
 from pwlfit import linear_condense
@@ -41,7 +41,7 @@ def fit_pwl(
     w: Optional[Sequence[float]] = None,
     num_segments: int = 3,
     num_samples: int = 100,
-    mono: MonoType = MonoType.mono,
+    mono: Union[MonoType, bool] = MonoType.mono,
     min_slope: Optional[float] = None,
     max_slope: Optional[float] = None,
     fx: Optional[Callable[[np.ndarray], np.ndarray]] = None,
@@ -475,11 +475,10 @@ class _WeightedLeastSquaresPWLSolver(object):
     """Constructor.
 
     Args:
-      x: (numpy array of floats) X-axis values for minimizing mean squared
-        error. Must be unique, and sorted in ascending order.
-      y: (numpy array of floats) Y-axis values corresponding to x, for
-        minimizing mean squared error.
-      w: (numpy array of floats) Weights for each (x, y) pair.
+      x: X-axis floats for minimizing mean squared error. Must be unique, and
+        sorted in ascending order.
+      y: Y-axis floats corresponding to x, for minimizing mean squared error.
+      w: Weights for each (x, y) pair. Positive floats.
       min_slope: float indicating the minimum slope between each adjacent pair
         of knots. Set to 0 to impose a monotone increasing solution.
       max_slope: float indicating the maximum slope between each adjacent pair

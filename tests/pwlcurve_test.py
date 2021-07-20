@@ -100,7 +100,7 @@ class PWLCurveTest(test_util.PWLFitTest, parameterized.TestCase):
   @parameterized.named_parameters((
       'not too sensitive',
       pwlcurve.PWLCurve([(1.0, 1.0), (2.0, 2.0)]),
-      pwlcurve.PWLCurve(([1, 1], [2, 2])),
+      pwlcurve.PWLCurve(((1, 1), (2, 2))),
       True,
   ), (
       'not a PWLCurve',

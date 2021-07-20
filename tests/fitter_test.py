@@ -667,10 +667,10 @@ class FitPWLPointsTest(test_util.PWLFitTest):
     self.assertNotAlmostEqual(peak_too_high_error, non_mono_error)
 
   def test_solver_squared_error_in_the_underdetermined_case(self):
-    x = [0., 4., 5.]
-    y = [0., 0., 2.]
+    x = np.array([0., 4., 5.])
+    y = np.array([0., 0., 2.])
     w = np.ones_like(x)
-    knots = [1., 2., 3.]
+    knots = np.array([1., 2., 3.])
 
     # The x=1 and x=3 knots affect the squared error, so their y-values are
     # determined by the system. However, the x=2 knot has no effect, so it can
