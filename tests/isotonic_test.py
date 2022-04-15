@@ -1,4 +1,3 @@
-# Lint as: python3
 """Tests for google3.quality.ranklab.main.optimization.isotonic_regression."""
 
 import unittest
