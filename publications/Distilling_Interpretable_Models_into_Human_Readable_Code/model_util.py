@@ -93,7 +93,7 @@ class EnumCurveModel(Model):
   def eval(self, data: Union[pd.DataFrame, Sequence[float]]) -> np.ndarray:
     return np.fromiter(
         (self._mapping[x] for x in _maybe_get_column(self._feature_name, data)),
-        dtype=np.float,
+        dtype=float,
         count=len(data))
 
   def expr(self) -> str:
@@ -378,7 +378,7 @@ def _fit_mapping(xs: Sequence[int], ys: Sequence[float]) -> Dict[int, float]:
   keys = np.unique(xs)
   values = np.round(
       np.fromiter((np.mean(ys[xs == k]) for k in keys),
-                  dtype=np.float,
+                  dtype=float,
                   count=len(keys)), 4)
   return dict(zip(keys, values))
 
