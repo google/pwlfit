@@ -364,7 +364,7 @@ class SamplingTest(test_util.PWLFitTest):
 
     # There are 100 unique xs, so we need 100 samples to perfectly samples x.
     # Additional samples shouldn't matter.
-    self.assertNotEqual(sampled_99, sampled_100)
+    self.assertFalse(np.array_equal(sampled_99, sampled_100))
     np.testing.assert_equal(sampled_100, sampled_101)
     np.testing.assert_equal(sampled_100, sampled_1000)
 
