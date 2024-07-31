@@ -244,7 +244,7 @@ class AdditiveModel(Model):
 def approx_sample(num_items: int, num_samples: int) -> np.array:
   """Fast approximate downsampling."""
   if num_items <= num_samples:
-    return np.ones(num_items, dtype=np.bool8)
+    return np.ones(num_items, dtype=np.bool_)
   np.random.seed(125)
   # Select each xy with probability (downsample_to / len(x)) to yield
   # approximately downsample_to selections.
