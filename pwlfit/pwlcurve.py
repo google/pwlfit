@@ -110,7 +110,7 @@ class PWLCurve(object):
     curve_xs = self._curve_xs
     curve_ys = self._curve_ys
     # Clamp the inputs to the range of the control points.
-    xs = np.array(xs, dtype=curve_xs.dtype, copy=False)
+    xs = np.asarray(xs, dtype=curve_xs.dtype)
     xs = np.clip(xs, curve_xs[0], curve_xs[-1])
     if self._fx is not None:
       xs = self._fx(xs)

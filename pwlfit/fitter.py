@@ -567,7 +567,7 @@ class _WeightedLeastSquaresPWLSolver(object):
       self,
       knot_xs: Sequence[float]) -> Tuple[Sequence[float], Sequence[float]]:
     """Computes the upper and lower bounds on the delta-ys between knots."""
-    knot_xs = np.array(knot_xs, copy=False)
+    knot_xs = np.asarray(knot_xs)
     delta_knot_xs = knot_xs[1:] - knot_xs[:-1]
 
     upper_bounds = np.full_like(knot_xs, np.inf)

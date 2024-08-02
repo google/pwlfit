@@ -24,9 +24,9 @@ from pwlfit import utils
 
 
 def _line_mse_on_data(slope, intercept, x, y, w):
-  x = np.array(x, copy=False)
-  y = np.array(y, copy=False)
-  w = np.array(w, copy=False)
+  x = np.asarray(x)
+  y = np.asarray(y)
+  w = np.asarray(w)
   return np.sum((slope * x + intercept - y)**2 * w)
 
 

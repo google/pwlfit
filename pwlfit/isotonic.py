@@ -35,7 +35,7 @@ def isotonic_regression(sequence: Sequence[float],
   Returns:
     A monotonic array of floats approximating the given sequence.
   """
-  sequence = np.array(sequence, copy=False, dtype=float)
+  sequence = np.asarray(sequence, dtype=float)
   if len(sequence) <= 1:
     return sequence
 
@@ -45,7 +45,7 @@ def isotonic_regression(sequence: Sequence[float],
   if weights is None:
     weights = np.ones_like(sequence)
   else:
-    weights = np.array(weights, copy=False, dtype=float)
+    weights = np.asarray(weights, dtype=float)
     utils.expect(
         len(weights) == len(sequence), 'Weights must be same size as sequence.')
     utils.expect((weights > 0).all(), 'Weights must be positive.')
@@ -219,7 +219,7 @@ def bitonic_regression(sequence, weights=None, convex=True):
     A bitonic sequence approximating the given sequence. Note that the output
     of this function is always a sequence of floats.
   """
-  sequence = np.array(sequence, copy=False, dtype=float)
+  sequence = np.asarray(sequence, dtype=float)
   if len(sequence) <= 1:
     return sequence
 
@@ -229,7 +229,7 @@ def bitonic_regression(sequence, weights=None, convex=True):
   if weights is None:
     weights = np.ones_like(sequence)
   else:
-    weights = np.array(weights, copy=False, dtype=float)
+    weights = np.asarray(weights, dtype=float)
     utils.expect(len(weights) == len(sequence),
                  'Weights must be same size as sequence.')
     utils.expect((weights > 0).all(), 'Weights must be positive.')
