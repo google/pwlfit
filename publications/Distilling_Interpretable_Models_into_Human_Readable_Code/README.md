@@ -26,14 +26,14 @@ For the COMPAS and FICO datasets we used the same datasets as the [NAM paper](ht
 
 ```
 unzip DATA.zip
-gsutil cp -R gs://nam_datasets/data/recidivism/* DATA/COMPAS/
+gcloud storage cp --recursive gs://nam_datasets/data/recidivism/* DATA/COMPAS/
 ```
 
 ## FICO
 
 ```
 unzip DATA.zip
-gsutil cp -R gs://nam_datasets/data/fico/* DATA/FICO
+gcloud storage cp --recursive gs://nam_datasets/data/fico/* DATA/FICO
 ```
 
 
