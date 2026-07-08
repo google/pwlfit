@@ -80,7 +80,7 @@ class PWLCurve(object):
     fx = cls.STR_TO_FX.get(fx_str)
     utils.expect(fx is not None, 'Invalid fx "%s" specified' % fx_str)
     control_points = ast.literal_eval(s[:s.rfind(',')] + ')')
-    return cls(control_points, fx)
+    return cls(control_points, fx)  # pyrefly: ignore[bad-argument-type]
 
   @property
   def points(self) -> List[Tuple[float, float]]:

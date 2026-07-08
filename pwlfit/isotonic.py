@@ -35,22 +35,22 @@ def isotonic_regression(sequence: Sequence[float],
   Returns:
     A monotonic array of floats approximating the given sequence.
   """
-  sequence = np.asarray(sequence, dtype=float)
+  sequence = np.asarray(sequence, dtype=float)  # pyrefly: ignore[bad-assignment]
   if len(sequence) <= 1:
-    return sequence
+    return sequence  # pyrefly: ignore[bad-return]
 
   if not increasing:
-    return -isotonic_regression(-sequence, weights, True)
+    return -isotonic_regression(-sequence, weights, True)  # pyrefly: ignore[unsupported-operation]
 
   if weights is None:
-    weights = np.ones_like(sequence)
+    weights = np.ones_like(sequence)  # pyrefly: ignore[bad-assignment]
   else:
-    weights = np.asarray(weights, dtype=float)
+    weights = np.asarray(weights, dtype=float)  # pyrefly: ignore[bad-assignment]
     utils.expect(
-        len(weights) == len(sequence), 'Weights must be same size as sequence.')
-    utils.expect((weights > 0).all(), 'Weights must be positive.')
+        len(weights) == len(sequence), 'Weights must be same size as sequence.')  # pyrefly: ignore[bad-argument-type]
+    utils.expect((weights > 0).all(), 'Weights must be positive.')  # pyrefly: ignore[missing-attribute, unsupported-operation]
 
-  return _pool_adjacent_violators(sequence, weights)
+  return _pool_adjacent_violators(sequence, weights)  # pyrefly: ignore[bad-argument-type]
 
 
 class _Block(object):
@@ -204,7 +204,7 @@ def bitonic_peak_and_error(sequence: Sequence[float],
   suffix_errors = _isotonic_partial_errors(sequence[::-1], weights[::-1])
   combined_errors = prefix_errors + suffix_errors[::-1]
   peak_index = np.argmin(combined_errors)
-  return peak_index, combined_errors[peak_index]
+  return peak_index, combined_errors[peak_index]  # pyrefly: ignore[bad-return]
 
 
 def bitonic_regression(sequence, weights=None, convex=True):
@@ -232,12 +232,12 @@ def bitonic_regression(sequence, weights=None, convex=True):
     weights = np.asarray(weights, dtype=float)
     utils.expect(len(weights) == len(sequence),
                  'Weights must be same size as sequence.')
-    utils.expect((weights > 0).all(), 'Weights must be positive.')
+    utils.expect((weights > 0).all(), 'Weights must be positive.')  # pyrefly: ignore[bad-argument-type]
 
-  index, _ = bitonic_peak_and_error(sequence, weights)
+  index, _ = bitonic_peak_and_error(sequence, weights)  # pyrefly: ignore[bad-argument-type]
   best_prefix = isotonic_regression(
-      sequence[:index], weights[:index], increasing=True)
+      sequence[:index], weights[:index], increasing=True)  # pyrefly: ignore[bad-argument-type]
   best_suffix = isotonic_regression(
-      sequence[index:], weights[index:], increasing=False)
+      sequence[index:], weights[index:], increasing=False)  # pyrefly: ignore[bad-argument-type]
 
   return np.concatenate([best_prefix, best_suffix])

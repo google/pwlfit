@@ -80,7 +80,7 @@ def linear_condense(
   y = np.array(y, dtype=float, copy=False)
   w = np.array(w, dtype=float, copy=False)
   if len(x) <= 2:
-    return x, y, w
+    return x, y, w  # pyrefly: ignore[bad-return]
 
   # Math is simpler and stabler if we recenter x and y to a zero centroid.
   # We'll add centroid_x and centroid_y back at the end.
@@ -196,7 +196,7 @@ def _greedy_weight_percentile_indices(w: np.ndarray,
     num_uniques = utils.count_uniques_on_sorted(indices)
 
     if num_uniques > target_num_uniques:
-      return prev_indices  # pylint: disable=used-before-assignment
+      return prev_indices  # pylint: disable=used-before-assignment  # pyrefly: ignore[unbound-name]
     if num_uniques == target_num_uniques:
       return indices
 

@@ -80,7 +80,7 @@ def count_uniques_on_sorted(sorted_a: np.ndarray) -> int:
   """
   if len(sorted_a) < 1:
     return 0
-  return 1 + np.count_nonzero(sorted_a[1:] != sorted_a[:-1])
+  return 1 + np.count_nonzero(sorted_a[1:] != sorted_a[:-1])  # pyrefly: ignore[bad-return]
 
 
 def expect(condition: bool, message: str = '') -> None:

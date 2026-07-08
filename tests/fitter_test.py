@@ -51,17 +51,17 @@ class FitterTest(test_util.PWLFitTest):
     y = np.random.normal(size=100)
     w = np.random.uniform(size=100)
     # fit_pwl treats mono=True as synonymous to mono=MonoType.mono.
-    self.assertEqual(fitter.fit_pwl(x, y, w, 2, mono=True),
-                     fitter.fit_pwl(x, y, w, 2, mono=fitter.MonoType.mono))
+    self.assertEqual(fitter.fit_pwl(x, y, w, 2, mono=True),  # pyrefly: ignore[bad-argument-type]
+                     fitter.fit_pwl(x, y, w, 2, mono=fitter.MonoType.mono))  # pyrefly: ignore[bad-argument-type]
     self.assertNotEqual(
-        fitter.fit_pwl(x, y, w, 2, mono=True),
-        fitter.fit_pwl(x, y, w, 2, mono=fitter.MonoType.nonmono))
+        fitter.fit_pwl(x, y, w, 2, mono=True),  # pyrefly: ignore[bad-argument-type]
+        fitter.fit_pwl(x, y, w, 2, mono=fitter.MonoType.nonmono))  # pyrefly: ignore[bad-argument-type]
 
     # fit_pwl treats mono=False as synonymous to mono=MonoType.nonmono.
-    self.assertEqual(fitter.fit_pwl(x, y, w, 2, mono=False),
-                     fitter.fit_pwl(x, y, w, 2, mono=fitter.MonoType.nonmono))
-    self.assertNotEqual(fitter.fit_pwl(x, y, w, 2, mono=False),
-                        fitter.fit_pwl(x, y, w, 2, mono=fitter.MonoType.mono))
+    self.assertEqual(fitter.fit_pwl(x, y, w, 2, mono=False),  # pyrefly: ignore[bad-argument-type]
+                     fitter.fit_pwl(x, y, w, 2, mono=fitter.MonoType.nonmono))  # pyrefly: ignore[bad-argument-type]
+    self.assertNotEqual(fitter.fit_pwl(x, y, w, 2, mono=False),  # pyrefly: ignore[bad-argument-type]
+                        fitter.fit_pwl(x, y, w, 2, mono=fitter.MonoType.mono))  # pyrefly: ignore[bad-argument-type]
 
   def test_mono_increasing_line(self):
     x = np.arange(51, dtype=float)
@@ -108,8 +108,8 @@ class FitterTest(test_util.PWLFitTest):
     y = pwlcurve.PWLCurve([(0, 0), (10, 1), (25, 25), (50, 60)]).eval(x)
     w = np.ones_like(x)
 
-    self.assertEqual(fitter.fit_pwl(x, y, w, 3, learn_ends=True),
-                     fitter.fit_pwl(x, y, w, 3, learn_ends=False))
+    self.assertEqual(fitter.fit_pwl(x, y, w, 3, learn_ends=True),  # pyrefly: ignore[bad-argument-type]
+                     fitter.fit_pwl(x, y, w, 3, learn_ends=False))  # pyrefly: ignore[bad-argument-type]
 
   def test_one_segment_pwl_with_flat_ends(self):
     x = np.arange(51, dtype=float)
@@ -117,7 +117,7 @@ class FitterTest(test_util.PWLFitTest):
     w = np.ones_like(x)
     # A one-segment PWLCurve can fit fn perfectly, but only if its knots are
     # [(10, 0), (40, 50)]. This test confirms that fit_pwl learns those knots.
-    curve = fitter.fit_pwl(x, y, w, 1)
+    curve = fitter.fit_pwl(x, y, w, 1)  # pyrefly: ignore[bad-argument-type]
     self.assert_allclose([(10, 0), (40, 50)], curve.points)
     self.assert_allclose(y, curve.eval(x))
     self.assertEqual(transform.identity, curve.fx)
@@ -130,7 +130,7 @@ class FitterTest(test_util.PWLFitTest):
     # [(10, 0), (40, 50)]. In this test, we disable learn_ends, and show that
     # the fitter can't learn the ideal fit because it's forced to use 0 and 50
     # as control points.
-    curve = fitter.fit_pwl(x, y, w, 1, learn_ends=False)
+    curve = fitter.fit_pwl(x, y, w, 1, learn_ends=False)  # pyrefly: ignore[bad-argument-type]
     self.assertEqual([0, 50], curve.xs)
     self.assert_notallclose(y, curve.eval(x))
 
@@ -193,7 +193,7 @@ class FitterTest(test_util.PWLFitTest):
     # A two-segment PWLCurve can fit fn perfectly, but only if its knots are
     # [(10, 0), (25, 15), (40, 50)]. This test confirms that fit_pwl will
     # learn those knots.
-    curve = fitter.fit_pwl(x, y, w, 2)
+    curve = fitter.fit_pwl(x, y, w, 2)  # pyrefly: ignore[bad-argument-type]
     self.assert_allclose([(10, 0), (25, 15), (40, 50)], curve.points)
     self.assert_allclose(y, curve.eval(x))
     self.assertEqual(transform.identity, curve.fx)
@@ -205,7 +205,7 @@ class FitterTest(test_util.PWLFitTest):
     # A two-segment PWLCurve can fit fn perfectly, but only if its knots are
     # [(10, 0), (25, 15), (40, 0)]. This test confirms that fit_pwl will learn
     # those knots.
-    curve = fitter.fit_pwl(x, y, w, 2, mono=False, fx=transform.identity)
+    curve = fitter.fit_pwl(x, y, w, 2, mono=False, fx=transform.identity)  # pyrefly: ignore[bad-argument-type]
     self.assert_allclose([(10, 0), (25, 15), (40, 0)], curve.points)
     self.assert_allclose(y, curve.eval(x))
 
@@ -218,7 +218,7 @@ class FitterTest(test_util.PWLFitTest):
     # show that the fitter can't learn the ideal fit because it's forced to use
     # 0 and 50 as control points.
     curve = fitter.fit_pwl(
-        x, y, w, 2, mono=False, fx=transform.identity, learn_ends=False)
+        x, y, w, 2, mono=False, fx=transform.identity, learn_ends=False)  # pyrefly: ignore[bad-argument-type]
     self.assertEqual([0, 25, 50], curve.xs)
     self.assert_notallclose(y, curve.eval(x))
 
@@ -331,7 +331,7 @@ class FitterTest(test_util.PWLFitTest):
     x = np.arange(51, dtype=float) / 10
     y = pwlcurve.PWLCurve([(0, 0), (1, 2), (2, 0), (3, 2), (4, 0)]).eval(x)
 
-    curve = fitter.fit_pwl(x, y, num_segments=4, fx=transform.identity,
+    curve = fitter.fit_pwl(x, y, num_segments=4, fx=transform.identity,  # pyrefly: ignore[bad-argument-type]
                            mono=fitter.MonoType.bitonic)
 
     # An unrestricted fit should change directions three times, but a unimodal
@@ -347,18 +347,18 @@ class FitterTest(test_util.PWLFitTest):
     y = pwlcurve.PWLCurve([(0, 0), (1, 2), (2, 5), (3, 2), (4, 0)]).eval(x)
 
     # y is concave down, so a concave solution is ideal.
-    concave_curve = fitter.fit_pwl(x, y, num_segments=4, fx=transform.identity,
+    concave_curve = fitter.fit_pwl(x, y, num_segments=4, fx=transform.identity,  # pyrefly: ignore[bad-argument-type]
                                    mono=fitter.MonoType.bitonic_concave_down)
-    convex_curve = fitter.fit_pwl(x, y, num_segments=4, fx=transform.identity,
+    convex_curve = fitter.fit_pwl(x, y, num_segments=4, fx=transform.identity,  # pyrefly: ignore[bad-argument-type]
                                   mono=fitter.MonoType.bitonic_concave_up)
 
     self.assert_allclose(y, concave_curve.eval(x))
     self.assert_notallclose(y, convex_curve.eval(x))
 
     # -y is concave up, so a convex solution is ideal.
-    concave_curve = fitter.fit_pwl(x, -y, num_segments=4, fx=transform.identity,
+    concave_curve = fitter.fit_pwl(x, -y, num_segments=4, fx=transform.identity,  # pyrefly: ignore[bad-argument-type]
                                    mono=fitter.MonoType.bitonic_concave_down)
-    convex_curve = fitter.fit_pwl(x, -y, num_segments=4, fx=transform.identity,
+    convex_curve = fitter.fit_pwl(x, -y, num_segments=4, fx=transform.identity,  # pyrefly: ignore[bad-argument-type]
                                   mono=fitter.MonoType.bitonic_concave_up)
 
     self.assert_allclose(-y, convex_curve.eval(x))
@@ -421,7 +421,7 @@ class FitPWLPointsTest(test_util.PWLFitTest):
     for num_required_x_knots in range(5):
       required_x_knots = np.random.uniform(size=num_required_x_knots)
       x_pnts, _ = fitter.fit_pwl_points(
-          x, x, y, w, 3, required_x_knots=required_x_knots)
+          x, x, y, w, 3, required_x_knots=required_x_knots)  # pyrefly: ignore[bad-argument-type]
       self.assertContainsSubset(required_x_knots, x_pnts)
 
   def test_fit_pwl_points_required_x_knots_handles_empty_cases(self):
@@ -438,7 +438,7 @@ class FitPWLPointsTest(test_util.PWLFitTest):
         fitter.fit_pwl_points(x, x, y, w, 3, required_x_knots=[]))
     self.assertEqual(
         fitter.fit_pwl_points(x, x, y, w, 3),
-        fitter.fit_pwl_points(x, x, y, w, 3, required_x_knots=np.array([])))
+        fitter.fit_pwl_points(x, x, y, w, 3, required_x_knots=np.array([])))  # pyrefly: ignore[bad-argument-type]
 
   def test_fit_pwl_points_raises_when_requiring_too_many_x_knots(self):
     np.random.seed(48440)
@@ -447,9 +447,9 @@ class FitPWLPointsTest(test_util.PWLFitTest):
     w = np.random.uniform(size=100)
 
     # For 3 segments, we can require up to 4 knots.
-    fitter.fit_pwl_points(x, x, y, w, 3, required_x_knots=x[[0, 1, 2, 3]])
+    fitter.fit_pwl_points(x, x, y, w, 3, required_x_knots=x[[0, 1, 2, 3]])  # pyrefly: ignore[bad-argument-type]
     with self.assertRaises(ValueError):
-      fitter.fit_pwl_points(x, x, y, w, 3, required_x_knots=x[[0, 1, 2, 3, 4]])
+      fitter.fit_pwl_points(x, x, y, w, 3, required_x_knots=x[[0, 1, 2, 3, 4]])  # pyrefly: ignore[bad-argument-type]
 
   def test_fit_pwl_points_required_x_knots(self):
     x = np.arange(51, dtype=float)
@@ -554,9 +554,9 @@ class FitPWLPointsTest(test_util.PWLFitTest):
     mono_down_solver = fitter._WeightedLeastSquaresPWLSolver(
         x, y, w, max_slope=0)
 
-    mono_up_y, _ = mono_up_solver.solve(knots)
+    mono_up_y, _ = mono_up_solver.solve(knots)  # pyrefly: ignore[bad-argument-type]
     self.assert_increasing(mono_up_y)
-    mono_down_y, _ = mono_down_solver.solve(knots)
+    mono_down_y, _ = mono_down_solver.solve(knots)  # pyrefly: ignore[bad-argument-type]
     self.assert_decreasing(mono_down_y)
 
   def test_sloped_solver_returns_sloped_solution(self):
@@ -570,12 +570,12 @@ class FitPWLPointsTest(test_util.PWLFitTest):
     max_slope_solver = fitter._WeightedLeastSquaresPWLSolver(
         x, y, w, max_slope=-5.)
 
-    min_slope_y, _ = min_slope_solver.solve(knots)
+    min_slope_y, _ = min_slope_solver.solve(knots)  # pyrefly: ignore[bad-argument-type]
     slopes = (min_slope_y[1:] - min_slope_y[:1]) / (knots[1:] - knots[:-1])
     for slope in slopes:
       self.assertGreaterEqual(slope, 5)
 
-    max_slope_y, _ = max_slope_solver.solve(knots)
+    max_slope_y, _ = max_slope_solver.solve(knots)  # pyrefly: ignore[bad-argument-type]
     slopes = (max_slope_y[1:] - max_slope_y[:1]) / (knots[1:] - knots[:-1])
     for slope in slopes:
       self.assertLessEqual(slope, -5)
@@ -587,7 +587,7 @@ class FitPWLPointsTest(test_util.PWLFitTest):
     knots = x
     max_slope_solver = fitter._WeightedLeastSquaresPWLSolver(
         x, y, w, max_slope=1.0)
-    max_slope_y, _ = max_slope_solver.solve(knots)
+    max_slope_y, _ = max_slope_solver.solve(knots)  # pyrefly: ignore[bad-argument-type]
     self.assert_allclose(max_slope_y, [0, 0, 2, 4, 6, 6])
 
   def test_min_and_max_slope(self):
@@ -597,7 +597,7 @@ class FitPWLPointsTest(test_util.PWLFitTest):
     knots = x
     slope_solver = fitter._WeightedLeastSquaresPWLSolver(
         x, y, w, min_slope=-1.0, max_slope=1.0)
-    knot_ys, _ = slope_solver.solve(knots)
+    knot_ys, _ = slope_solver.solve(knots)  # pyrefly: ignore[bad-argument-type]
     self.assert_allclose(knot_ys, [0, 1, 0, -1, 0])
 
   def test_mono_solver_same_as_non_mono_for_mono_task(self):
@@ -678,17 +678,17 @@ class FitPWLPointsTest(test_util.PWLFitTest):
     expected_error = 2.0
 
     nonmono_solver = fitter._WeightedLeastSquaresPWLSolver(x, y, w)
-    _, nonmono_error = nonmono_solver.solve(knots)
+    _, nonmono_error = nonmono_solver.solve(knots)  # pyrefly: ignore[bad-argument-type]
     self.assertAlmostEqual(expected_error, nonmono_error)
 
     mono_up_solver = fitter._WeightedLeastSquaresPWLSolver(x, y, w, min_slope=0)
-    _, mono_up_error = mono_up_solver.solve(knots)
+    _, mono_up_error = mono_up_solver.solve(knots)  # pyrefly: ignore[bad-argument-type]
     self.assertAlmostEqual(expected_error, mono_up_error)
 
     # The mono-down case is fully constrained, with best curve y = mean = 2/3.
     mono_down_solver = fitter._WeightedLeastSquaresPWLSolver(
         x, y, w, max_slope=0)
-    _, mono_down_error = mono_down_solver.solve(knots)
+    _, mono_down_error = mono_down_solver.solve(knots)  # pyrefly: ignore[bad-argument-type]
     self.assertAlmostEqual(8./3, mono_down_error)
 
 if __name__ == '__main__':

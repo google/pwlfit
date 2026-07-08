@@ -90,34 +90,34 @@ def fit_pwl(
   utils.expect(num_samples > num_segments,
                'num_samples must be at least num_segments + 1')
 
-  x, y, w = sort_and_sample(x, y, w)
+  x, y, w = sort_and_sample(x, y, w)  # pyrefly: ignore[bad-assignment]
   if fx is None:
-    fx = transform.find_best_transform(x, y, w)
+    fx = transform.find_best_transform(x, y, w)  # pyrefly: ignore[bad-argument-type]
 
   original_x = x
-  trans_x = fx(x)
-  utils.expect(np.isfinite(trans_x[[0, -1]]).all(),
+  trans_x = fx(x)  # pyrefly: ignore[bad-argument-type]
+  utils.expect(np.isfinite(trans_x[[0, -1]]).all(),  # pyrefly: ignore[bad-argument-type]
                'Transform must be defined on x.')
 
   # Pick a subset of x to use as candidate knots, and compress x, y, w around
   # those candidate knots.
-  x_knots, x, y, w = (
-      linear_condense.sample_condense_points(trans_x, y, w, num_samples))
+  x_knots, x, y, w = (  # pyrefly: ignore[bad-assignment]
+      linear_condense.sample_condense_points(trans_x, y, w, num_samples))  # pyrefly: ignore[bad-argument-type]
 
   if mono == MonoType.mono:
-    min_slope, max_slope = _get_mono_slope_bounds(y, w, min_slope, max_slope)
+    min_slope, max_slope = _get_mono_slope_bounds(y, w, min_slope, max_slope)  # pyrefly: ignore[bad-argument-type]
 
   bitonic_peak, bitonic_concave_down = _bitonic_peak_and_direction(
-      x, y, w, mono)
+      x, y, w, mono)  # pyrefly: ignore[bad-argument-type]
 
   # Fit a piecewise-linear curve in the transformed space.
   required_knots = None if learn_ends else x_knots[[0, -1]]
-  x_pnts, y_pnts = fit_pwl_points(x_knots, x, y, w, num_segments, min_slope,
+  x_pnts, y_pnts = fit_pwl_points(x_knots, x, y, w, num_segments, min_slope,  # pyrefly: ignore[bad-argument-type]
                                   max_slope, bitonic_peak, bitonic_concave_down,
-                                  required_knots)
+                                  required_knots)  # pyrefly: ignore[bad-argument-type]
 
   # Recover the control point xs in the pre-transform space.
-  x_pnts = original_x[trans_x.searchsorted(x_pnts)]
+  x_pnts = original_x[trans_x.searchsorted(x_pnts)]  # pyrefly: ignore[bad-index]
   if np.all(y_pnts == y_pnts[0]):  # The curve is constant.
     curve_points = [(x_pnts[0] - 1, y_pnts[0]), (x_pnts[0], y_pnts[0])]
   else:
@@ -151,18 +151,18 @@ def sort_and_sample(
     variable in sorted order, the independent variable, and the weights
     respectively.
   """
-  x = np.array(x, copy=False)
-  y = np.array(y, copy=False)
+  x = np.array(x, copy=False)  # pyrefly: ignore[bad-assignment]
+  y = np.array(y, copy=False)  # pyrefly: ignore[bad-assignment]
   if w is None:
-    w = np.ones_like(x)
+    w = np.ones_like(x)  # pyrefly: ignore[bad-assignment]
   else:
-    w = np.array(w, copy=False)
-    utils.expect((w > 0).all(), 'Weights must be positive.')
+    w = np.array(w, copy=False)  # pyrefly: ignore[bad-assignment]
+    utils.expect((w > 0).all(), 'Weights must be positive.')  # pyrefly: ignore[missing-attribute, unsupported-operation]
 
-  utils.expect(len(x) == len(y) == len(w) >= 1)
-  utils.expect(np.isfinite(x).all(), 'x-values must all be finite.')
-  utils.expect(np.isfinite(y).all(), 'y-values must all be finite.')
-  utils.expect(np.isfinite(w).all(), 'w-values must all be finite.')
+  utils.expect(len(x) == len(y) == len(w) >= 1)  # pyrefly: ignore[bad-argument-type]
+  utils.expect(np.isfinite(x).all(), 'x-values must all be finite.')  # pyrefly: ignore[bad-argument-type]
+  utils.expect(np.isfinite(y).all(), 'y-values must all be finite.')  # pyrefly: ignore[bad-argument-type]
+  utils.expect(np.isfinite(w).all(), 'w-values must all be finite.')  # pyrefly: ignore[no-matching-overload]
 
   # Downsample to a manageable number of points to limit runtime.
   if len(x) > downsample_to * 1.01:
@@ -171,21 +171,21 @@ def sort_and_sample(
     # approximately downsample_to selections.
     fraction_kept = float(downsample_to) / len(x)
     mask = np.random.sample(size=len(x)) < fraction_kept
-    x, y, w = x[mask], y[mask], w[mask]
+    x, y, w = x[mask], y[mask], w[mask]  # pyrefly: ignore[bad-index, unsupported-operation]
 
   # Sort the points by x if any are out of order.
-  if (x[1:] < x[:-1]).any():
+  if (x[1:] < x[:-1]).any():  # pyrefly: ignore[missing-attribute, unsupported-operation]
     point_order = np.argsort(x)
-    x, y, w = x[point_order], y[point_order], w[point_order]
+    x, y, w = x[point_order], y[point_order], w[point_order]  # pyrefly: ignore[bad-index, unsupported-operation]
 
   # Use float64 for precision.
-  x = x.astype(float, copy=False)
-  y = y.astype(float, copy=False)
+  x = x.astype(float, copy=False)  # pyrefly: ignore[missing-attribute]
+  y = y.astype(float, copy=False)  # pyrefly: ignore[missing-attribute]
   w = w.astype(float, copy=False)
 
   # Fuse points with the same x, so that all xs become unique.
-  x, y, w = utils.fuse_sorted_points(x, y, w)
-  return x, y, w
+  x, y, w = utils.fuse_sorted_points(x, y, w)  # pyrefly: ignore[bad-assignment]
+  return x, y, w  # pyrefly: ignore[bad-return]
 
 
 def _get_mono_slope_bounds(
@@ -209,7 +209,7 @@ def _get_mono_slope_bounds(
     return min_slope, max_slope
 
   # Calculate the preferable direction using isotonic regression.
-  is_increasing = _is_increasing(y, w)
+  is_increasing = _is_increasing(y, w)  # pyrefly: ignore[bad-argument-type]
 
   # Update the slope restrictions.
   if is_increasing:
@@ -240,7 +240,7 @@ def _is_increasing(y: Sequence[float], w: Sequence[float]) -> bool:
 
   increasing_norm = np.average((increasing - y)**2, weights=w)
   decreasing_norm = np.average((decreasing - y)**2, weights=w)
-  return increasing_norm <= decreasing_norm
+  return increasing_norm <= decreasing_norm  # pyrefly: ignore[bad-return]
 
 
 def _bitonic_peak_and_error(x: Sequence[float], y: Sequence[float],
@@ -256,18 +256,18 @@ def _bitonic_peak_and_direction(
   """Returns the bitonic peak's x-value, and the bitonic direction."""
 
   if mono == MonoType.bitonic:  # Pick the direction minimizing error.
-    concave_peak, concave_error = _bitonic_peak_and_error(x, y, w)
-    convex_peak, convex_error = _bitonic_peak_and_error(x, -y, w)
+    concave_peak, concave_error = _bitonic_peak_and_error(x, y, w)  # pyrefly: ignore[bad-argument-type]
+    convex_peak, convex_error = _bitonic_peak_and_error(x, -y, w)  # pyrefly: ignore[bad-argument-type]
     if concave_error <= convex_error:
       return concave_peak, True
     return convex_peak, False
 
   if mono == MonoType.bitonic_concave_down:  # Find the concave-down peak.
-    concave_peak, _ = _bitonic_peak_and_error(x, y, w)
+    concave_peak, _ = _bitonic_peak_and_error(x, y, w)  # pyrefly: ignore[bad-argument-type]
     return concave_peak, True
 
   if mono == MonoType.bitonic_concave_up:  # Find the concave-up (convex) peak.
-    convex_peak, _ = _bitonic_peak_and_error(x, -y, w)
+    convex_peak, _ = _bitonic_peak_and_error(x, -y, w)  # pyrefly: ignore[bad-argument-type]
     return convex_peak, False
 
   # Else, 'mono' isn't a bitonic type, so there isn't a bitonic peak/direction.
@@ -325,7 +325,7 @@ def fit_pwl_points(
 
   solver = _WeightedLeastSquaresPWLSolver(
       x, y, w, min_slope, max_slope, bitonic_peak, bitonic_concave_down)
-  return _fit_pwl_approx(x_knots, solver.solve, num_segments, required_x_knots)
+  return _fit_pwl_approx(x_knots, solver.solve, num_segments, required_x_knots)  # pyrefly: ignore[bad-argument-type]
 
 
 def _fit_pwl_approx(
@@ -353,7 +353,7 @@ def _fit_pwl_approx(
   if len(x_knots) <= num_segments + 1:
     # There's no need to select knot-xs: just use all of them.
     knot_values, _ = solve_fn(x_knots)
-    return x_knots, knot_values
+    return x_knots, knot_values  # pyrefly: ignore[bad-return]
 
   solve_cache = {}
 
@@ -371,7 +371,7 @@ def _fit_pwl_approx(
 
     assert best_error != np.inf
     cur_knots = sorted(cur_knots + [best_pnt])
-    return cur_knots, list(best_knot_values), best_error
+    return cur_knots, list(best_knot_values), best_error  # pyrefly: ignore[bad-argument-type]
 
   # Start with the required knots if there are any, or the first knot if not.
   required_x_knots = [] if required_x_knots is None else list(required_x_knots)
@@ -399,7 +399,7 @@ def _fit_pwl_approx(
       break
     best_error = error
 
-  return best_knots, best_knot_values
+  return best_knots, best_knot_values  # pyrefly: ignore[bad-return]
 
 
 class _WeightedLeastSquaresPWLSolver(object):
@@ -489,7 +489,7 @@ class _WeightedLeastSquaresPWLSolver(object):
         Used only when bitonic_peak is not None.
     """
     utils.expect(len(x) == len(y) == len(w) >= 1)
-    utils.expect((w >= 0).all(), 'weights cannot be negative.')
+    utils.expect((w >= 0).all(), 'weights cannot be negative.')  # pyrefly: ignore[bad-argument-type]
     utils.expect(min_slope is None or max_slope is None or
                  min_slope <= max_slope)
     utils.expect(
@@ -567,8 +567,8 @@ class _WeightedLeastSquaresPWLSolver(object):
       self,
       knot_xs: Sequence[float]) -> Tuple[Sequence[float], Sequence[float]]:
     """Computes the upper and lower bounds on the delta-ys between knots."""
-    knot_xs = np.asarray(knot_xs)
-    delta_knot_xs = knot_xs[1:] - knot_xs[:-1]
+    knot_xs = np.asarray(knot_xs)  # pyrefly: ignore[bad-assignment]
+    delta_knot_xs = knot_xs[1:] - knot_xs[:-1]  # pyrefly: ignore[unsupported-operation]
 
     upper_bounds = np.full_like(knot_xs, np.inf)
     lower_bounds = -upper_bounds
@@ -580,16 +580,16 @@ class _WeightedLeastSquaresPWLSolver(object):
       upper_bounds[1:] = self._max_slope * delta_knot_xs
 
     if self._bitonic_peak is not None:
-      bitonic_lower, bitonic_upper = self._get_bitonic_bounds(knot_xs)
+      bitonic_lower, bitonic_upper = self._get_bitonic_bounds(knot_xs)  # pyrefly: ignore[bad-argument-type]
       lower_bounds = np.maximum(lower_bounds, bitonic_lower)
       upper_bounds = np.minimum(upper_bounds, bitonic_upper)
 
-    return lower_bounds, upper_bounds
+    return lower_bounds, upper_bounds  # pyrefly: ignore[bad-return]
 
   def _get_bitonic_bounds(
       self, knot_xs: np.ndarray) -> Tuple[Sequence[float], Sequence[float]]:
     """Computes the upper and lower bounds caused by bitonicity."""
-    peak_index = knot_xs.searchsorted(self._bitonic_peak)
+    peak_index = knot_xs.searchsorted(self._bitonic_peak)  # pyrefly: ignore[no-matching-overload]
     upper_bound = np.full_like(knot_xs, np.inf)
     lower_bound = -upper_bound
 
@@ -601,7 +601,7 @@ class _WeightedLeastSquaresPWLSolver(object):
       upper_bound[1:peak_index] = 0
       lower_bound[peak_index+1:] = 0
 
-    return lower_bound, upper_bound
+    return lower_bound, upper_bound  # pyrefly: ignore[bad-return]
 
   def solve(self, knot_xs: Sequence[float]) -> Tuple[np.ndarray, float]:
     """Computes the weighted least squares PWL knot ys for the given knot xs.
