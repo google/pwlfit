@@ -181,7 +181,7 @@ def sort_and_sample(
   # Use float64 for precision.
   x = x.astype(float, copy=False)  # pyrefly: ignore[missing-attribute]
   y = y.astype(float, copy=False)  # pyrefly: ignore[missing-attribute]
-  w = w.astype(float, copy=False)
+  w = w.astype(float, copy=False)  # pyrefly: ignore[missing-attribute]
 
   # Fuse points with the same x, so that all xs become unique.
   x, y, w = utils.fuse_sorted_points(x, y, w)  # pyrefly: ignore[bad-assignment]
